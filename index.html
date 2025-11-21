@@ -11,36 +11,109 @@
     .row { display: flex; gap: 16px; }
     textarea { width: 320px; height: 80px; margin: 8px 0; }
     button { margin: 8px; padding: 8px 16px; font-size: 1rem; }
+    /* Landing / home overlay */
+    #landing { position: fixed; inset: 0; display:flex; align-items:center; justify-content:center; background: rgba(0,0,0,0.7); z-index: 30; }
+    #landing .card { background: #0f1416; border-radius:8px; padding:28px; text-align:center; box-shadow:0 6px 30px rgba(0,0,0,0.6); }
+    #landing .card h2 { margin-top:0; }
+    /* SOL top-up modal */
+    #solTopupModal { position: fixed; inset: 0; display: none; align-items:center; justify-content:center; background: rgba(0,0,0,0.6); z-index: 50; }
+    #solTopupModal .modal { background:#0b0f10; color:#eee; padding:20px; border-radius:10px; width:480px; box-shadow:0 8px 40px rgba(0,0,0,0.7); }
+    #solTopupModal .modal h3 { margin:0 0 8px 0; }
+    #solTopupModal .modal .muted { color:#9aa; font-size:0.9rem; }
+    #solTopupModal .modal .walletAddr { font-family: monospace; background:#071017; padding:8px; border-radius:6px; margin:8px 0; overflow:auto; }
+    #solTopupModal .modal .actions { display:flex; gap:8px; justify-content:flex-end; margin-top:12px; }
   </style>
 </head>
 <body>
+  <div id="landing">
+    <div class="card">
+      <h2>Welcome to Pay2Chat</h2>
+      <p style="color:#bbb;">Create or join a Pay2Chat room to start a paid P2P call.</p>
+      <div style="margin-top:12px;">
+        <button id="landingCreateBtn">Create Room</button>
+        <button id="landingJoinBtn">Join Room</button>
+      </div>
+      <div style="margin-top:12px;color:#888;font-size:0.9rem;">You can connect your Phantom or Solflare wallet from the main page.</div>
+    </div>
+  </div>
   <div class="container">
-    <h1>Pay2Chat (Stage 2: Basic Call UI)</h1>
-    <div id="homePanel" style="margin:12px 0;">
-      <button id="homeCreateBtn">Create Room</button>
-      <button id="homeJoinBtn">Join Room</button>
+    <header style="display:flex;align-items:center;justify-content:space-between;width:100%;max-width:900px;">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <div style="font-weight:bold;font-size:1.1rem;">Pay2Chat</div>
+        <nav style="font-size:0.9rem;color:#9aa;">
+          <a href="#home" onclick="event.preventDefault();" id="navHome" style="color:#9aa;margin-right:10px;">Home</a>
+          <a href="#create" onclick="event.preventDefault();" id="navCreate" style="color:#9aa;margin-right:10px;">Create</a>
+          <a href="#join" onclick="event.preventDefault();" id="navJoin" style="color:#9aa;margin-right:10px;">Join</a>
+        </nav>
+      </div>
+      <div style="font-size:0.9rem;color:#9aa;">
+        <span id="solBadge">SOL: -</span>
+        <span style="margin-left:10px;" id="usdcBadge">USDC: -</span>
+      </div>
+    </header>
+    <h1 style="margin-top:14px;">Pay2Chat</h1>
+  <!-- SOL top-up modal shown when wallet lacks SOL for fees -->
+  <div id="solTopupModal">
+    <div class="modal">
+      <h3>Insufficient SOL for transaction fees</h3>
+      <div class="muted">Your wallet needs a small amount of SOL to cover transaction fees and create token accounts. Please deposit SOL into your connected wallet and then re-check your balance.</div>
+      <div style="margin-top:10px;"><strong>Required minimum SOL:</strong> <span id="modalRequiredSol">0.0015</span> SOL</div>
+      <div style="margin-top:6px;"><strong>Your current SOL:</strong> <span id="modalCurrentSol">-</span> SOL</div>
+      <div style="margin-top:8px;"><strong>Your wallet address:</strong>
+        <div class="walletAddr" id="modalWalletAddr"></div>
+      </div>
+      <div class="actions">
+        <button id="modalRecheckBtn">Re-check balance</button>
+        <button id="modalCloseBtn">Close</button>
+      </div>
     </div>
-    <div class="row">
-      <video id="localVideo" autoplay playsinline muted></video>
-      <video id="remoteVideo" autoplay playsinline></video>
+  </div>
+    <section id="homePage" style="width:100%;max-width:900px;margin:12px 0;">
+      <div style="display:flex;gap:12px;align-items:center;">
+        <button id="homeCreateBtn">Create a Session</button>
+        <button id="homeJoinBtn">Join a Session</button>
+      </div>
+      <p style="color:#bbb;margin-top:12px;">Platform: P2P video calls billed per-minute using Solana USDC. Hosts set rates; invitees prepay. Tips encouraged.</p>
+    </section>
+    <!-- Call page wrapper: hidden until navigating to 'call' -->
+    <div id="callPage" style="display:none; width:100%; max-width:900px;">
+      <div class="row">
+        <video id="localVideo" autoplay playsinline muted></video>
+        <video id="remoteVideo" autoplay playsinline></video>
+      </div>
+      <div class="row">
+        <button id="startBtn">Start Local Media</button>
+        <button id="createOfferBtn" style="display:none;">Create Offer</button>
+        <button id="createAnswerBtn" style="display:none;">Create Answer</button>
+        <button id="setRemoteBtn" style="display:none;">Set Remote SDP</button>
+      </div>
+      <div class="row">
+        <button id="muteBtn" disabled>Mute</button>
+        <button id="cameraBtn" disabled>Camera Off</button>
+        <button id="endCallBtn" disabled>End Call</button>
+        <span id="connState" style="margin-left:16px;"></span>
+      </div>
     </div>
-    <div class="row">
-      <button id="startBtn">Start Local Media</button>
-      <button id="createOfferBtn">Create Offer</button>
-      <button id="createAnswerBtn">Create Answer</button>
-      <button id="setRemoteBtn">Set Remote SDP</button>
+    <!-- SDP modal (copy/paste flow) -->
+    <div id="sdpModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); align-items:center; justify-content:center; z-index:60;">
+      <div style="background:#0b0f10;padding:16px;border-radius:8px;width:720px;">
+        <h3 style="margin-top:0;color:#fff;">Signaling (copy/paste)</h3>
+        <div style="display:flex;gap:8px;">
+          <div style="flex:1;">
+            <label style="font-size:0.85rem;color:#9aa;">Your SDP (copy and share with remote)</label>
+            <textarea id="localSDP" style="width:100%;height:160px;background:#071017;color:#ddd;"></textarea>
+            <div style="margin-top:6px;"><button id="copyLocalSdpBtn">Copy Local SDP</button></div>
+          </div>
+          <div style="flex:1;">
+            <label style="font-size:0.85rem;color:#9aa;">Remote SDP (paste here and click Accept)</label>
+            <textarea id="remoteSDP" style="width:100%;height:160px;background:#071017;color:#ddd;"></textarea>
+            <div style="margin-top:6px;"><button id="acceptRemoteSdpBtn">Accept Remote SDP</button></div>
+          </div>
+        </div>
+        <div style="text-align:right;margin-top:10px;"><button id="closeSdpModal">Close</button></div>
+      </div>
     </div>
-    <div class="row">
-      <button id="muteBtn" disabled>Mute</button>
-      <button id="cameraBtn" disabled>Camera Off</button>
-      <button id="endCallBtn" disabled>End Call</button>
-      <span id="connState" style="margin-left:16px;"></span>
-    </div>
-    <div>
-      <textarea id="localSDP" placeholder="Local SDP"></textarea>
-      <textarea id="remoteSDP" placeholder="Remote SDP"></textarea>
-    </div>
-    <div>
+    <div style="display:none;">
       <input id="dataMsg" placeholder="Message to send" />
       <button id="sendDataBtn">Send DataChannel Msg</button>
       <div id="dataLog" style="margin-top:8px; min-height:24px;"></div>
@@ -55,11 +128,14 @@
           <option value="mainnet">mainnet-beta</option>
           <option value="devnet">devnet</option>
         </select>
-        <label for="customRpc" style="margin-left:8px;">Custom RPC:</label>
-        <input id="customRpc" value="https://mainnet.helius-rpc.com/?api-key=87b803b7-48a2-446b-8661-233d33f9cc4d" placeholder="https://api.mainnet-beta.solana.com" style="width:300px" />
+        <!-- Custom RPC input hidden; RPC switching done behind the scenes -->
+        <label for="customRpc" style="margin-left:8px;display:none;">Custom RPC:</label>
+        <input id="customRpc" value="https://mainnet.helius-rpc.com/?api-key=87b803b7-48a2-446b-8661-233d33f9cc4d" placeholder="https://api.mainnet-beta.solana.com" style="width:300px;display:none;" />
         <button id="connectPhantomBtn">Connect Phantom</button>
         <button id="connectSolflareBtn">Connect Solflare</button>
         <button id="connectWCBtn">Connect (WalletConnect)</button>
+        <button id="disconnectWalletBtn" style="margin-left:8px;display:none;">Disconnect</button>
+        <button id="copyAddressBtn" style="margin-left:8px;display:none;">Copy Address</button>
         <span id="walletAddr"></span>
       </div>
         <div style="margin-top:8px;">
@@ -81,10 +157,13 @@
             <h3>Stage 5: Room & Prepay (Host / Invitee)</h3>
             <div id="createPanel" style="display:none; margin-top:8px;">
               <div style="display:flex;gap:8px;align-items:center;">
-                <label style="width:140px;">Host price / min (USDC):</label>
-                <input id="hostPrice" placeholder="e.g. 0.50" style="width:120px;" />
+                <label style="width:140px;">Host rate / min (USDC):</label>
+                <input id="hostPrice" placeholder="e.g. 1.00" style="width:120px;" />
+                <label style="margin-left:8px;font-size:0.85rem;color:#9aa;"><input type="checkbox" id="includeOfferCheckbox" /> Include Offer in Link (auto-join)</label>
                 <button id="createRoomBtn">Create Room (Host)</button>
+                <button id="createBeginBtn">Begin Session (Host)</button>
                 <span id="roomInfo" style="margin-left:12px;color:#9f9;"></span>
+                <button id="copyInviteBtn" style="margin-left:8px; display:none;">Copy Invite</button>
               </div>
               <div style="margin-top:8px;">
                 <h4>Files for sale (Host)</h4>
@@ -100,6 +179,7 @@
                 <label style="width:140px;">Join Room (paste invite link or code):</label>
                 <input id="inviteCodeInput" placeholder="Invite link or code" style="flex:1;" />
                 <button id="joinByCodeBtn">Join</button>
+                <button id="joinBeginBtn">Join Session</button>
               </div>
               <div style="display:flex;gap:8px;align-items:center;margin-top:8px;">
                 <label style="width:140px;">Host address (parsed):</label>
@@ -108,6 +188,7 @@
                 <button id="prepayBtn">Prepay 3 minutes</button>
               </div>
               <div id="prepayStatus" style="margin-top:8px;color:#8f8;"></div>
+              <div style="margin-top:6px;color:#bdb;padding:8px;background:#071017;border-radius:6px;">Fees: invitee will prepay the initial N minutes (3 by default). Tips are encouraged — you can tip during or after the call.</div>
               <div style="margin-top:8px;">
                 <strong>Tip during/after call:</strong>
                 <input id="tipAmount" placeholder="Amount (USDC)" style="width:120px; margin-left:8px;" />
@@ -121,6 +202,8 @@
   </div>
   <script src="https://unpkg.com/@solana/web3.js@1.73.0/lib/index.iife.min.js"></script>
   <script src="https://unpkg.com/@solana/spl-token@0.3.7/lib/index.iife.min.js"></script>
+  <script src="https://unpkg.com/lz-string/libs/lz-string.min.js"></script>
+  <script src="config.js"></script>
   <script src="webrtc.js"></script>
 </body>
 </html>
