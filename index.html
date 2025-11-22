@@ -517,6 +517,15 @@
       0%, 100% { opacity: 1; }
       50% { opacity: 0.5; }
     }
+    
+    /* Stage 7: Timer styles */
+    #callTimer {
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      transition: all 0.3s ease;
+    }
+    #callTimer[style*="animation: pulse"] {
+      box-shadow: 0 4px 20px rgba(245, 158, 11, 0.5);
+    }
 
     /* Call Page */
     #callPage {
