@@ -1,0 +1,50 @@
+{
+  "name": "x402SecScan",
+  "description": "Audit for leaked secrets, RPC keys, unsafe wallet logic, WebRTC leaks, CORS, or security misconfigurations.",
+  "includes": [
+    "**/*"
+  ],
+  "steps": [
+    {
+      "goal": "Scan for leaked secrets",
+      "instructions": [
+        "Search files for RPC keys, TURN creds, API keys, wallet secrets.",
+        "Flag exposed credentials."
+      ]
+    },
+    {
+      "goal": "Audit env var usage",
+      "instructions": [
+        "Ensure sensitive data is env-protected.",
+        "Check missing .env.example entries."
+      ]
+    },
+    {
+      "goal": "Audit Solana/wallet safety",
+      "instructions": [
+        "Ensure no private keys in client.",
+        "Verify safe SPL-token and web3.js usage."
+      ]
+    },
+    {
+      "goal": "Audit WebRTC security",
+      "instructions": [
+        "Ensure ICE config hides local IP.",
+        "Detect unsafe STUN/TURN usage."
+      ]
+    },
+    {
+      "goal": "Audit CORS and data flow",
+      "instructions": [
+        "Scan fetch() for insecure patterns.",
+        "Flag wildcard origins."
+      ]
+    },
+    {
+      "goal": "Output risks and patches",
+      "instructions": [
+        "List high/medium/low risks + fixes."
+      ]
+    }
+  ]
+}

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Pay2Chat - P2P Video Chat</title>
+  <title>X402 CHAT - Private P2P Video Chat with Crypto Payments</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -14,10 +14,10 @@
       --primary-hover: #8B5CF6;
       --secondary: #10B981;
       --accent: #F59E0B;
-      --background: #1F2937;
-      --surface: #374151;
-      --surface-light: #4B5563;
-      --text: #F9FAFB;
+      --background: #181c20;
+      --surface: #1F2937;
+      --surface-light: #374151;
+      --text: #FFFFFF;
       --text-muted: #9CA3AF;
       --border: #4B5563;
       --danger: #EF4444;
@@ -34,6 +34,8 @@
       margin: 0;
       padding: 0;
       line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
     }
 
     .container {
@@ -99,6 +101,13 @@
     button.secondary:hover:not(:disabled) {
       background: var(--primary);
       color: white;
+    }
+    button.join-btn {
+      background: var(--secondary);
+      color: white;
+    }
+    button.join-btn:hover:not(:disabled) {
+      background: #059669;
     }
     button.danger {
       background: var(--danger);
@@ -183,8 +192,8 @@
     }
     header .logo {
       font-weight: 700;
-      font-size: 18px;
-      color: var(--primary);
+      font-size: 24px;
+      color: var(--text);
     }
     nav a {
       font-size: 14px;
@@ -212,38 +221,210 @@
       color: var(--secondary);
     }
 
-    /* Landing Overlay */
+    /* Landing Page */
     #landing {
       position: fixed;
       inset: 0;
+      background: var(--background);
+      z-index: 1000;
+      overflow-y: auto;
+      padding: 0;
+    }
+    
+    #landing .landing-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 32px 24px;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    #landing .hero-section {
+      text-align: center;
+      padding: 80px 20px 60px;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    #landing .hero-section h1 {
+      font-size: 48px;
+      font-weight: 700;
+      line-height: 1.2;
+      margin-bottom: 20px;
+      color: var(--text);
+    }
+
+    #landing .hero-section .tagline {
+      font-size: 20px;
+      color: var(--text);
+      margin-bottom: 40px;
+      font-weight: 400;
+    }
+
+    #landing .cta-buttons {
+      display: flex;
+      gap: 16px;
+      justify-content: center;
+      margin-bottom: 80px;
+      flex-wrap: wrap;
+    }
+
+    #landing .cta-buttons button {
+      padding: 16px 32px;
+      font-size: 16px;
+      font-weight: 600;
+      border-radius: 8px;
+      min-width: 200px;
+    }
+
+    #landing .cta-buttons button.join-btn {
+      background: var(--secondary);
+      color: white;
+    }
+
+    #landing .cta-buttons button.join-btn:hover {
+      background: #059669;
+    }
+
+    /* Feature Cards */
+    #landing .features {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 32px;
+      margin-bottom: 80px;
+      max-width: 1000px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    #landing .feature-card {
+      text-align: center;
+      padding: 32px 24px;
+    }
+
+    #landing .feature-icon {
+      width: 64px;
+      height: 64px;
+      border-radius: 16px;
       display: flex;
       align-items: center;
       justify-content: center;
-      background: rgba(0, 0, 0, 0.85);
-      backdrop-filter: blur(8px);
-      z-index: 1000;
+      margin: 0 auto 20px;
+      font-size: 32px;
     }
-    #landing .card {
+
+    #landing .feature-icon.purple {
+      background: rgba(124, 58, 237, 0.2);
+      color: var(--primary);
+    }
+
+    #landing .feature-icon.green {
+      background: rgba(16, 185, 129, 0.2);
+      color: var(--secondary);
+    }
+
+    #landing .feature-icon.orange {
+      background: rgba(245, 158, 11, 0.2);
+      color: var(--accent);
+    }
+
+    #landing .feature-card h3 {
+      font-size: 20px;
+      margin-bottom: 12px;
+      color: var(--text);
+    }
+
+    #landing .feature-card p {
+      font-size: 14px;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+
+    /* Start Chatting Section */
+    #landing .start-section {
+      text-align: center;
+      margin-bottom: 60px;
+    }
+
+    #landing .start-section h2 {
+      font-size: 36px;
+      font-weight: 700;
+      margin-bottom: 16px;
+      color: var(--text);
+    }
+
+    #landing .start-section p {
+      font-size: 18px;
+      color: var(--text-muted);
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    /* Bottom CTA Cards */
+    #landing .action-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+      gap: 32px;
+      max-width: 900px;
+      margin: 0 auto 60px;
+    }
+
+    #landing .action-card {
       background: var(--surface);
       border-radius: 16px;
-      padding: 48px;
+      padding: 48px 40px;
       text-align: center;
-      max-width: 480px;
-      width: 90%;
-      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+      border: 1px solid var(--border);
     }
-    #landing .card h2 {
-      margin-bottom: 12px;
-      font-size: 28px;
-    }
-    #landing .card p {
-      margin-bottom: 24px;
-    }
-    #landing .card .button-group {
+
+    #landing .action-card-icon {
+      width: 80px;
+      height: 80px;
+      border-radius: 20px;
       display: flex;
-      gap: 12px;
+      align-items: center;
       justify-content: center;
-      margin-top: 24px;
+      margin: 0 auto 24px;
+      font-size: 40px;
+    }
+
+    #landing .action-card-icon.purple {
+      background: rgba(124, 58, 237, 0.2);
+      color: var(--primary);
+    }
+
+    #landing .action-card-icon.green {
+      background: rgba(16, 185, 129, 0.2);
+      color: var(--secondary);
+    }
+
+    #landing .action-card h3 {
+      font-size: 24px;
+      margin-bottom: 16px;
+      color: var(--text);
+    }
+
+    #landing .action-card p {
+      font-size: 16px;
+      color: var(--text-muted);
+      margin-bottom: 32px;
+      line-height: 1.6;
+    }
+
+    #landing .action-card button {
+      padding: 14px 32px;
+      font-size: 16px;
+      font-weight: 600;
+    }
+
+    #landing .action-card button.join-btn {
+      background: var(--secondary);
+      color: white;
+    }
+
+    #landing .action-card button.join-btn:hover {
+      background: #059669;
     }
 
     /* Modals */
@@ -424,6 +605,37 @@
       .modal {
         padding: 24px;
       }
+      #landing .hero-section {
+        padding: 40px 20px 40px;
+      }
+      #landing .hero-section h1 {
+        font-size: 32px;
+      }
+      #landing .hero-section .tagline {
+        font-size: 16px;
+      }
+      #landing .cta-buttons {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      #landing .cta-buttons button {
+        width: 100%;
+      }
+      #landing .features {
+        grid-template-columns: 1fr;
+        gap: 24px;
+      }
+      #landing .action-cards {
+        grid-template-columns: 1fr;
+      }
+      #landing header nav {
+        flex-wrap: wrap;
+        font-size: 12px;
+      }
+      #landing header nav a {
+        margin-right: 12px;
+        margin-bottom: 8px;
+      }
     }
 
     /* Connection State */
@@ -437,24 +649,77 @@
 </head>
 <body>
   <div id="landing">
-    <div class="card">
-      <h2>Welcome to Pay2Chat</h2>
-      <p>Create or join a Pay2Chat room to start a paid P2P call.</p>
-      <div class="button-group">
-        <button id="landingCreateBtn">Create Room</button>
-        <button id="landingJoinBtn" class="secondary">Join Room</button>
+    <div class="landing-container">
+      <header style="margin-bottom: 40px;">
+        <div style="display: flex; align-items: center; justify-content: space-between;">
+          <div class="logo" style="font-size: 24px; font-weight: 700; color: var(--text);">X402 CHAT</div>
+          <nav>
+            <a href="#home" onclick="event.preventDefault();" id="navHomeLanding" style="color: var(--text-muted); text-decoration: none; margin-right: 24px; font-size: 14px;">Home</a>
+            <a href="#start" onclick="event.preventDefault();" style="color: var(--text-muted); text-decoration: none; margin-right: 24px; font-size: 14px;">Start Chat</a>
+            <a href="#join" onclick="event.preventDefault();" style="color: var(--text-muted); text-decoration: none; margin-right: 24px; font-size: 14px;">Join Chat</a>
+            <a href="#faq" onclick="event.preventDefault();" style="color: var(--text-muted); text-decoration: none; margin-right: 24px; font-size: 14px;">FAQ</a>
+            <a href="#privacy" onclick="event.preventDefault();" style="color: var(--text-muted); text-decoration: none; margin-right: 24px; font-size: 14px;">Privacy</a>
+            <a href="#terms" onclick="event.preventDefault();" style="color: var(--text-muted); text-decoration: none; font-size: 14px;">Terms</a>
+          </nav>
+        </div>
+      </header>
+
+      <div class="hero-section">
+        <h1>Private, peer-to-peer chat with simple, built-in crypto payments.</h1>
+        <p class="tagline">No apps. No signups. Just connect, talk, and pay — instantly.</p>
+        <div class="cta-buttons">
+          <button id="landingCreateBtn">Start New Chat</button>
+          <button id="landingJoinBtn" class="join-btn">Join Chat with Code</button>
+        </div>
       </div>
-      <p style="margin-top: 24px; font-size: 12px; color: var(--text-muted);">You can connect your Phantom or Solflare wallet from the main page.</p>
+
+      <div class="features">
+        <div class="feature-card">
+          <div class="feature-icon purple">🔒</div>
+          <h3>Private & Secure</h3>
+          <p>End-to-end encrypted. Your media never touches our servers.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon green">⚡</div>
+          <h3>Instant Payment</h3>
+          <p>Built on Solana. Wallet-to-wallet transactions settle in seconds. No banks, no middlemen.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon orange">✓</div>
+          <h3>Simple for Everyone</h3>
+          <p>Create or join a chat in one click. Pay or receive instantly using USDC.</p>
+        </div>
+      </div>
+
+      <div class="start-section">
+        <h2>Start Chatting Now</h2>
+        <p>Set a price or join a chat — payment happens automatically while you talk.</p>
+      </div>
+
+      <div class="action-cards">
+        <div class="action-card">
+          <div class="action-card-icon purple">🎥</div>
+          <h3>Create Private Chat</h3>
+          <p>Set your rate. Get paid instantly by the minute.</p>
+          <button id="landingCreateCardBtn">Create Chat</button>
+        </div>
+        <div class="action-card">
+          <div class="action-card-icon green">👤+</div>
+          <h3>Join Private Chat</h3>
+          <p>Chat Instantly. Pay Instantly. No Bank Required.</p>
+          <button id="landingJoinCardBtn" class="join-btn">Join Chat</button>
+        </div>
+      </div>
     </div>
   </div>
   <div class="container">
     <header>
       <div style="display: flex; align-items: center; gap: 24px;">
-        <div class="logo">Pay2Chat</div>
+        <div class="logo">X402 CHAT</div>
         <nav>
           <a href="#home" onclick="event.preventDefault();" id="navHome">Home</a>
-          <a href="#create" onclick="event.preventDefault();" id="navCreate">Create</a>
-          <a href="#join" onclick="event.preventDefault();" id="navJoin">Join</a>
+          <a href="#start" onclick="event.preventDefault();" id="navStart">Start Chat</a>
+          <a href="#join" onclick="event.preventDefault();" id="navJoin">Join Chat</a>
         </nav>
       </div>
       <div style="display: flex; gap: 12px; align-items: center;">
