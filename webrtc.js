@@ -116,14 +116,19 @@ function createPeerConnection() {
           pendingPaymentEvent = evt;
         }
       }
+      // Stage 6: Start automatic billing when connection is established
+      setTimeout(() => startBilling(), 1000); // Small delay to ensure everything is ready
     }
     if (pc.connectionState === 'disconnected' || pc.connectionState === 'closed' || pc.connectionState === 'failed') {
       endCallBtn.disabled = true;
       muteBtn.disabled = true;
       cameraBtn.disabled = true;
+      // Stage 6: Stop billing when connection closes
+      stopBilling();
     }
     if (pc.connectionState === 'closed') {
       resetUI();
+      stopBilling();
     }
     if (pc.connectionState === 'failed' && reconnectAttempts < MAX_RECONNECTS) {
       reconnectAttempts++;
@@ -169,6 +174,19 @@ function setupDataChannel() {
             break;
           case 'transfer_failed':
             logData(`[Transfer failed] code=${msg.code} msg=${msg.message}`);
+            break;
+          // Stage 6: Handle billing events over DataChannel
+          case 'billing_attempt':
+            logData(`[Billing attempt] amount=${msg.amount} timestamp=${msg.timestamp}`);
+            logStatus(`Remote attempting minute payment: ${msg.amount} USDC`);
+            break;
+          case 'billing_success':
+            logData(`[Billing success] txid=${msg.txid} amount=${msg.amount} total=${msg.totalPaid}`);
+            logStatus(`Remote minute paid: ${msg.txid} (total: ${msg.totalPaid} USDC)`);
+            break;
+          case 'billing_failed':
+            logData(`[Billing failed] code=${msg.code} message=${msg.message}`);
+            logStatus(`Remote billing failed: ${msg.code} - ${msg.message}`);
             break;
           default:
             logData('[Remote event] ' + e.data);
@@ -255,6 +273,8 @@ cameraBtn.onclick = () => {
 
 endCallBtn.onclick = () => {
   if (pc) {
+    // Stage 6: Stop billing when call ends
+    stopBilling();
     pc.close();
     updateConnState('closed');
     logStatus('Call ended.');
@@ -516,8 +536,20 @@ clusterSelect && (clusterSelect.onchange = () => {
   const landing = document.getElementById('landing');
   const landingCreateBtn = document.getElementById('landingCreateBtn');
   const landingJoinBtn = document.getElementById('landingJoinBtn');
-  if (landingCreateBtn) landingCreateBtn.onclick = () => { if (landing) landing.style.display = 'none'; navigateTo('create'); }; // Keep inline for landing overlay
-  if (landingJoinBtn) landingJoinBtn.onclick = () => { if (landing) landing.style.display = 'none'; navigateTo('join'); }; // Keep inline for landing overlay
+  const landingCreateCardBtn = document.getElementById('landingCreateCardBtn');
+  const landingJoinCardBtn = document.getElementById('landingJoinCardBtn');
+  const navHomeLanding = document.getElementById('navHomeLanding');
+  
+  const hideLandingAndNavigate = (page) => {
+    if (landing) landing.style.display = 'none';
+    navigateTo(page);
+  };
+  
+  if (landingCreateBtn) landingCreateBtn.onclick = () => hideLandingAndNavigate('create');
+  if (landingJoinBtn) landingJoinBtn.onclick = () => hideLandingAndNavigate('join');
+  if (landingCreateCardBtn) landingCreateCardBtn.onclick = () => hideLandingAndNavigate('create');
+  if (landingJoinCardBtn) landingJoinCardBtn.onclick = () => hideLandingAndNavigate('join');
+  if (navHomeLanding) navHomeLanding.onclick = (e) => { e.preventDefault(); hideLandingAndNavigate('home'); };
 
   // Role-based UI update: hosts should not send USDC from the browser test widget
   function updateRoleUI() {
@@ -1585,4 +1617,251 @@ if (prepayBtn) {
       }
     }
   };
+}
+
+// --- Stage 6: X402 Automatic Per-Minute Billing ---
+let billingInterval = null;
+let billingRetryAttempted = false;
+let callStartTime = null;
+let billingStatus = null; // 'paid', 'pending', 'failed', 'frozen'
+let totalPaid = 0; // Running total in USDC
+let billingStatusElement = null;
+
+// Initialize billing status UI element
+function initBillingStatusUI() {
+  if (!billingStatusElement) {
+    const callPage = document.getElementById('callPage');
+    if (callPage) {
+      billingStatusElement = document.createElement('div');
+      billingStatusElement.id = 'billingStatus';
+      billingStatusElement.style.cssText = 'position: fixed; top: 16px; right: 16px; background: var(--surface); padding: 12px 16px; border-radius: 8px; font-family: JetBrains Mono, monospace; font-size: 14px; z-index: 100; border: 1px solid var(--border); display: none;';
+      document.body.appendChild(billingStatusElement);
+    }
+  }
+}
+
+function updateBillingStatusUI(status, message) {
+  if (!billingStatusElement) initBillingStatusUI();
+  if (!billingStatusElement) return;
+  
+  let color = 'var(--text-muted)';
+  if (status === 'paid') color = 'var(--secondary)';
+  else if (status === 'pending') color = 'var(--accent)';
+  else if (status === 'failed' || status === 'frozen') color = 'var(--danger)';
+  
+  billingStatusElement.style.color = color;
+  billingStatusElement.style.borderColor = color;
+  billingStatusElement.textContent = message || `Status: ${status}`;
+  if (status === 'paid' || status === 'pending' || status === 'failed' || status === 'frozen') {
+    billingStatusElement.style.display = 'block';
+  }
+}
+
+function freezeVideo() {
+  // Freeze local video by disabling tracks
+  if (localStream && localStream.getVideoTracks) {
+    localStream.getVideoTracks().forEach(track => {
+      track.enabled = false;
+    });
+  }
+  // Freeze remote video if available
+  if (remoteVideo && remoteVideo.srcObject && remoteVideo.srcObject.getVideoTracks) {
+    try {
+      remoteVideo.srcObject.getVideoTracks().forEach(track => track.enabled = false);
+    } catch (e) { 
+      console.warn('Failed to freeze remote video:', e);
+    }
+  }
+  billingStatus = 'frozen';
+  updateBillingStatusUI('frozen', '❄️ Video frozen - Payment failed');
+  logStatus('Video frozen due to payment failure');
+}
+
+function unfreezeVideo() {
+  // Unfreeze local video by enabling tracks
+  if (localStream && localStream.getVideoTracks) {
+    localStream.getVideoTracks().forEach(track => track.enabled = true);
+  }
+  // Unfreeze remote video if available
+  if (remoteVideo && remoteVideo.srcObject && remoteVideo.srcObject.getVideoTracks) {
+    try {
+      remoteVideo.srcObject.getVideoTracks().forEach(track => track.enabled = true);
+    } catch (e) { 
+      console.warn('Failed to unfreeze remote video:', e);
+    }
+  }
+  billingStatus = 'paid';
+}
+
+async function sendMinuteBilling() {
+  // Only invitee pays for ongoing billing
+  if (!joinHostAddr || !joinHostAddr.value || !joinPrice || !joinPrice.value) {
+    console.warn('Cannot bill: missing host address or price');
+    return;
+  }
+  
+  // Respect build toggle
+  if (PAYMENTS_DISABLED) {
+    console.info('Billing skipped: payments disabled');
+    return;
+  }
+  
+  const fromPub = ensureSolanaPublicKey((currentWallet && currentWallet.pubkey) || (window.solana && window.solana.publicKey));
+  if (!fromPub) {
+    logStatus('Billing failed: wallet not connected');
+    billingStatus = 'failed';
+    freezeVideo();
+    return;
+  }
+  
+  const hostAddr = joinHostAddr.value.trim();
+  const price = parseFloat(joinPrice.value);
+  if (!hostAddr || !(price > 0)) {
+    logStatus('Billing failed: invalid host address or price');
+    billingStatus = 'failed';
+    freezeVideo();
+    return;
+  }
+  
+  const amount = price; // 1 minute = price per minute
+  
+  billingStatus = 'pending';
+  updateBillingStatusUI('pending', `⏳ Processing minute payment (${amount} USDC)...`);
+  
+  // Send billing event over DataChannel
+  if (dataChannel && dataChannel.readyState === 'open') {
+    try {
+      dataChannel.send(JSON.stringify({
+        type: 'billing_attempt',
+        amount,
+        timestamp: Date.now()
+      }));
+    } catch (e) { console.warn('Failed to send billing event', e); }
+  }
+  
+  try {
+    const res = await sendUsdcTransfer({
+      fromPubkey: fromPub,
+      toOwner: hostAddr,
+      amount,
+      onProgress: ({ attempt, status: progressStatus }) => {
+        if (progressStatus === 'signing' || progressStatus === 'sending') {
+          updateBillingStatusUI('pending', `⏳ ${progressStatus === 'signing' ? 'Waiting for wallet approval...' : 'Sending transaction...'}`);
+        }
+      }
+    });
+    
+    // Success
+    totalPaid += amount;
+    billingStatus = 'paid';
+    billingRetryAttempted = false; // Reset retry flag on success
+    updateBillingStatusUI('paid', `✓ Minute paid (${totalPaid.toFixed(2)} USDC total)`);
+    
+    // Send success event over DataChannel
+    if (dataChannel && dataChannel.readyState === 'open') {
+      try {
+        dataChannel.send(JSON.stringify({
+          type: 'billing_success',
+          txid: res.txid,
+          amount,
+          totalPaid,
+          timestamp: Date.now()
+        }));
+      } catch (e) { console.warn('Failed to send billing success event', e); }
+    }
+    
+    // Unfreeze video if it was frozen
+    unfreezeVideo();
+    
+    logStatus(`Minute billing successful: ${res.txid}`);
+    
+  } catch (err) {
+    console.error('Minute billing failed:', err);
+    billingStatus = 'failed';
+    
+    // Send failure event over DataChannel
+    if (dataChannel && dataChannel.readyState === 'open') {
+      try {
+        dataChannel.send(JSON.stringify({
+          type: 'billing_failed',
+          code: err.code || 'UNKNOWN',
+          message: err.message || String(err),
+          timestamp: Date.now()
+        }));
+      } catch (e) { console.warn('Failed to send billing failure event', e); }
+    }
+    
+    // Freeze video immediately
+    freezeVideo();
+    
+    // Retry logic: single retry attempt
+    if (!billingRetryAttempted) {
+      billingRetryAttempted = true;
+      updateBillingStatusUI('failed', `⚠️ Payment failed, retrying...`);
+      logStatus('Payment failed, retrying once...');
+      
+      // Wait 5 seconds before retry
+      setTimeout(async () => {
+        if (billingStatus === 'failed' || billingStatus === 'frozen') {
+          await sendMinuteBilling();
+        }
+      }, 5000);
+    } else {
+      // Retry already attempted - end call
+      updateBillingStatusUI('failed', `❌ Payment failed - Call ending`);
+      logStatus('Payment failed after retry. Ending call.');
+      
+      // End call after 3 seconds
+      setTimeout(() => {
+        if (endCallBtn) {
+          endCallBtn.click();
+        }
+      }, 3000);
+    }
+  }
+}
+
+function startBilling() {
+  if (billingInterval) {
+    clearInterval(billingInterval);
+    billingInterval = null;
+  }
+  
+  // Only start billing if we're the invitee (have joinHostAddr filled)
+  if (!joinHostAddr || !joinHostAddr.value || PAYMENTS_DISABLED) {
+    return;
+  }
+  
+  callStartTime = Date.now();
+  billingRetryAttempted = false;
+  billingStatus = 'paid'; // Initial prepay covers first billing
+  totalPaid = 0;
+  
+  // Show billing status UI
+  initBillingStatusUI();
+  updateBillingStatusUI('paid', '✓ Prepay confirmed - Billing active');
+  
+  // Start billing interval: every 60 seconds
+  billingInterval = setInterval(() => {
+    if (pc && pc.connectionState === 'connected') {
+      sendMinuteBilling();
+    } else {
+      // Connection lost - stop billing
+      stopBilling();
+    }
+  }, 60000); // 60 seconds
+  
+  logStatus('X402 automatic billing started (every 60 seconds)');
+}
+
+function stopBilling() {
+  if (billingInterval) {
+    clearInterval(billingInterval);
+    billingInterval = null;
+  }
+  if (billingStatusElement) {
+    billingStatusElement.style.display = 'none';
+  }
+  billingStatus = null;
+  logStatus('X402 automatic billing stopped');
 }
