@@ -526,6 +526,46 @@
     #callTimer[style*="animation: pulse"] {
       box-shadow: 0 4px 20px rgba(245, 158, 11, 0.5);
     }
+    
+    /* Stage 10: Notification styles */
+    #notification {
+      animation: slideInFromRight 0.3s ease;
+    }
+    
+    @keyframes slideInFromRight {
+      from {
+        opacity: 0;
+        transform: translateX(100%);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+    
+    /* Stage 10: Responsive improvements */
+    @media (max-width: 768px) {
+      #callTimer, #billingStatus {
+        font-size: 14px;
+        padding: 10px 12px;
+      }
+      #callTimer {
+        top: 8px;
+        left: 8px;
+        max-width: 160px;
+      }
+      #billingStatus {
+        top: 8px;
+        right: 8px;
+        max-width: 200px;
+      }
+      #notification {
+        bottom: 60px;
+        right: 8px;
+        left: 8px;
+        max-width: none;
+      }
+    }
 
     /* Call Page */
     #callPage {
@@ -657,6 +697,61 @@
   </style>
 </head>
 <body>
+  <!-- Stage 11: Consent Modal -->
+  <div id="consentModal" style="display: none; position: fixed; inset: 0; background: rgba(0, 0, 0, 0.95); z-index: 10000; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(12px);">
+    <div style="background: var(--surface); border-radius: 16px; padding: 32px; max-width: 640px; max-height: 90vh; overflow-y: auto; border: 2px solid var(--primary); box-shadow: 0 16px 48px rgba(0,0,0,0.5);">
+      <h1 style="margin-top: 0; color: var(--text); font-size: 28px; margin-bottom: 24px;">Welcome to PAY2CHAT</h1>
+      
+      <div style="margin-bottom: 24px; padding: 16px; background: rgba(124, 58, 237, 0.1); border-radius: 8px; border: 1px solid var(--primary);">
+        <h3 style="margin-top: 0; color: var(--primary); font-size: 16px; margin-bottom: 12px;">Important Information</h3>
+        <p style="color: var(--text-muted); margin-bottom: 0; font-size: 14px; line-height: 1.6;">
+          PAY2CHAT is a <strong>peer-to-peer</strong> video chat application. All calls, payments, and file transfers occur directly between users' browsers. 
+          We operate no servers, store no data, and have no access to your communications. Payments use Solana USDC with automatic per-minute billing. 
+          Transactions are irreversible once confirmed on the blockchain.
+        </p>
+      </div>
+
+      <div style="margin-bottom: 24px;">
+        <h3 style="color: var(--text); font-size: 18px; margin-bottom: 16px;">User Responsibilities</h3>
+        <ul style="color: var(--text-muted); padding-left: 24px; margin: 0;">
+          <li>You are solely responsible for all transactions and payments</li>
+          <li>You must maintain sufficient USDC balance for automatic billing</li>
+          <li>All payments are final and non-refundable</li>
+          <li>You are responsible for content you share and receive</li>
+          <li>You must comply with all applicable laws and regulations</li>
+        </ul>
+      </div>
+
+      <div style="margin-bottom: 24px; padding: 16px; background: var(--surface-light); border-radius: 8px; border: 1px solid var(--border);">
+        <label style="display: flex; align-items: flex-start; gap: 12px; cursor: pointer; margin-bottom: 16px;">
+          <input type="checkbox" id="consentAge" style="margin-top: 4px; width: 20px; height: 20px; cursor: pointer; flex-shrink: 0;" />
+          <span style="color: var(--text); font-size: 14px; line-height: 1.5;">I certify I am 18+.</span>
+        </label>
+        
+        <label style="display: flex; align-items: flex-start; gap: 12px; cursor: pointer; margin-bottom: 16px;">
+          <input type="checkbox" id="consentTOS" style="margin-top: 4px; width: 20px; height: 20px; cursor: pointer; flex-shrink: 0;" />
+          <span style="color: var(--text); font-size: 14px; line-height: 1.5;">I agree to the <a href="legal/tos.html" target="_blank" style="color: var(--primary); text-decoration: underline;">Terms of Service</a>.</span>
+        </label>
+        
+        <label style="display: flex; align-items: flex-start; gap: 12px; cursor: pointer; margin-bottom: 16px;">
+          <input type="checkbox" id="consentPP" style="margin-top: 4px; width: 20px; height: 20px; cursor: pointer; flex-shrink: 0;" />
+          <span style="color: var(--text); font-size: 14px; line-height: 1.5;">I agree to the <a href="legal/privacy.html" target="_blank" style="color: var(--primary); text-decoration: underline;">Privacy Policy</a>.</span>
+        </label>
+        
+        <label style="display: flex; align-items: flex-start; gap: 12px; cursor: pointer;">
+          <input type="checkbox" id="consentResponsibility" style="margin-top: 4px; width: 20px; height: 20px; cursor: pointer; flex-shrink: 0;" />
+          <span style="color: var(--text); font-size: 14px; line-height: 1.5;">I understand I am solely responsible for my use and transactions.</span>
+        </label>
+      </div>
+
+      <div style="display: flex; gap: 12px; justify-content: flex-end;">
+        <button id="consentContinueBtn" disabled style="padding: 12px 24px; font-size: 16px; font-weight: 600; background: var(--primary); color: white; border: none; border-radius: 8px; cursor: not-allowed; opacity: 0.5; transition: all 0.2s;">
+          Agree and Enter PAY2CHAT
+        </button>
+      </div>
+    </div>
+  </div>
+
   <div id="landing">
     <div class="landing-container">
       <header style="margin-bottom: 40px;">

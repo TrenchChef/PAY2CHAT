@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Privacy Policy - PAY2CHAT</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #7C3AED;
+      --background: #181c20;
+      --surface: #1F2937;
+      --text: #FFFFFF;
+      --text-muted: #9CA3AF;
+    }
+    * { box-sizing: border-box; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--background);
+      color: var(--text);
+      margin: 0;
+      padding: 0;
+      line-height: 1.6;
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 32px 16px;
+    }
+    h1 { color: var(--text); margin-bottom: 24px; }
+    h2 { color: var(--text); margin-top: 32px; margin-bottom: 16px; border-bottom: 1px solid var(--text-muted); padding-bottom: 8px; }
+    p, li { color: var(--text-muted); margin-bottom: 12px; }
+    a { color: var(--primary); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .back-link { display: inline-block; margin-bottom: 24px; color: var(--primary); }
+    .highlight { background: rgba(124, 58, 237, 0.1); padding: 2px 6px; border-radius: 4px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <a href="../index.html" class="back-link">← Back to PAY2CHAT</a>
+    <h1>Privacy Policy</h1>
+    <p><strong>Last Updated:</strong> $(date)</p>
+    <p>This Privacy Policy explains how PAY2CHAT handles information in our peer-to-peer video chat application. Given our unique P2P architecture, our approach to privacy is fundamentally different from traditional services.</p>
+
+    <h2>1. No Server Logs or Storage</h2>
+    <p><strong>PAY2CHAT operates entirely in your browser.</strong> We do not operate any servers, databases, or storage systems. Therefore:</p>
+    <ul>
+      <li>We do not log any information on servers</li>
+      <li>We do not store any data about your usage</li>
+      <li>We do not track your activity</li>
+      <li>We do not have access to your communication data</li>
+    </ul>
+    <p>All video calls, audio, messages, and file transfers occur directly between users' browsers via WebRTC peer-to-peer connections.</p>
+
+    <h2>2. No Collection of Personal Data</h2>
+    <p>PAY2CHAT does not collect, store, or process any personal data because:</p>
+    <ul>
+      <li>We have no servers to collect data</li>
+      <li>We have no databases to store data</li>
+      <li>We have no analytics systems</li>
+      <li>We do not require user accounts or registration</li>
+      <li>We do not request or store email addresses, names, or other identifying information</li>
+    </ul>
+
+    <h2>3. Wallet Address Usage</h2>
+    <p>When you connect a Solana wallet to PAY2CHAT:</p>
+    <ul>
+      <li>Your wallet address is used <strong>locally in your browser only</strong> for making peer-to-peer USDC payments</li>
+      <li>Wallet addresses are shared directly with other users (host/invitee) for payment purposes</li>
+      <li>We do not collect, store, or have access to wallet addresses</li>
+      <li>Wallet addresses are publicly visible on the Solana blockchain for transactions</li>
+      <li>You are responsible for wallet security and private key protection</li>
+    </ul>
+
+    <h2>4. No Tracking Beyond Browser Defaults</h2>
+    <p>PAY2CHAT does not implement any tracking technologies such as:</p>
+    <ul>
+      <li>Cookies for tracking (only technical cookies if required)</li>
+      <li>Third-party analytics</li>
+      <li>Advertising trackers</li>
+      <li>Fingerprinting technologies</li>
+      <li>Cross-site tracking</li>
+    </ul>
+    <p>Any data collection that occurs is limited to what your browser naturally does (e.g., cache, local storage for preferences). You can clear browser data at any time to remove this information.</p>
+
+    <h2>5. Peer-to-Peer Communications Not Accessible</h2>
+    <p>All communication on PAY2CHAT occurs directly peer-to-peer:</p>
+    <ul>
+      <li><strong>Video/Audio:</strong> Transmitted directly via WebRTC between users' browsers</li>
+      <li><strong>Messages:</strong> Sent over WebRTC DataChannel directly between peers</li>
+      <li><strong>Files:</strong> Transferred directly P2P over DataChannel</li>
+      <li><strong>Payments:</strong> Executed directly on Solana blockchain between wallets</li>
+    </ul>
+    <p>PAY2CHAT cannot access, intercept, or monitor any of this communication because it never passes through our servers (we have none).</p>
+
+    <h2>6. Local Storage</h2>
+    <p>PAY2CHAT may use browser local storage for:</p>
+    <ul>
+      <li>Storing user preferences (e.g., consent acceptance)</li>
+      <li>Remembering connection settings</li>
+      <li>Temporary session data</li>
+    </ul>
+    <p>All local storage data remains on your device and can be cleared at any time through your browser settings.</p>
+
+    <h2>7. Third-Party Services</h2>
+    <p>PAY2CHAT integrates with the following third-party services:</p>
+    <ul>
+      <li><strong>Solana Blockchain:</strong> For USDC payments. Solana transactions are public and permanent on the blockchain.</li>
+      <li><strong>WebRTC:</strong> For peer-to-peer communication. Uses standard browser WebRTC APIs.</li>
+      <li><strong>Wallet Providers:</strong> Phantom, Solflare, or other Solana wallet extensions. Interact with wallets only when you initiate transactions.</li>
+    </ul>
+    <p>These services have their own privacy policies. PAY2CHAT does not control how these services handle your data.</p>
+
+    <h2>8. Data Shared Between Users</h2>
+    <p>In order to function, PAY2CHAT requires some information to be shared directly between users:</p>
+    <ul>
+      <li><strong>Wallet Addresses:</strong> Shared for payment routing</li>
+      <li><strong>Video/Audio Streams:</strong> Transmitted directly P2P via WebRTC</li>
+      <li><strong>Signaling Data (SDP):</strong> Shared to establish WebRTC connections (can be copy/pasted or sent via optional signaling server)</li>
+      <li><strong>Billing Events:</strong> Sent over DataChannel to coordinate payments</li>
+      <li><strong>Files:</strong> Transmitted directly P2P after purchase</li>
+    </ul>
+    <p>This sharing occurs directly between users' browsers. PAY2CHAT does not have access to this data.</p>
+
+    <h2>9. Optional Signaling Server</h2>
+    <p>PAY2CHAT supports optional ephemeral WebSocket signaling servers for automatic connection setup. If you use such a server:</p>
+    <ul>
+      <li>The signaling server may temporarily see connection setup data (SDP offers/answers)</li>
+      <li>This data is not stored or logged by PAY2CHAT</li>
+      <li>If using a third-party signaling server, their privacy policy applies</li>
+      <li>You can use manual copy/paste signaling to avoid any signaling server</li>
+    </ul>
+
+    <h2>10. Children's Privacy</h2>
+    <p>PAY2CHAT is not intended for users under 18 years of age. We do not knowingly collect information from minors. If you are under 18, please do not use PAY2CHAT.</p>
+
+    <h2>11. Your Rights</h2>
+    <p>Since PAY2CHAT does not collect or store personal data, there is no data to access, modify, or delete. However, you can:</p>
+    <ul>
+      <li>Clear browser cache and local storage to remove any local data</li>
+      <li>Disconnect your wallet at any time</li>
+      <li>Stop using PAY2CHAT at any time</li>
+      <li>Use browser privacy settings to limit data collection</li>
+    </ul>
+
+    <h2>12. Changes to Privacy Policy</h2>
+    <p>We may update this Privacy Policy to reflect changes in our practices. Changes will be effective immediately upon posting. Your continued use of PAY2CHAT after changes constitutes acceptance of the updated policy.</p>
+
+    <h2>13. Contact</h2>
+    <p>If you have questions about this Privacy Policy, please review the Terms of Service or contact us through the PAY2CHAT platform.</p>
+
+    <div style="margin-top: 48px; padding: 24px; background: rgba(124, 58, 237, 0.1); border-radius: 8px; border: 1px solid var(--primary);">
+      <h3 style="margin-top: 0; color: var(--primary);">Summary</h3>
+      <p style="margin-bottom: 0;"><strong>PAY2CHAT is a pure peer-to-peer application.</strong> We have no servers, no databases, and no way to collect or store your data. All communication and payments occur directly between users. Your privacy is protected by architecture, not promises.</p>
+    </div>
+
+    <p style="margin-top: 48px; padding-top: 24px; border-top: 1px solid var(--text-muted);"><a href="../index.html">← Back to PAY2CHAT</a></p>
+  </div>
+</body>
+</html>
+
