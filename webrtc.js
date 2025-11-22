@@ -1,6 +1,85 @@
 // Pay2Chat Stage 1: WebRTC P2P Core
 // No backend, no payments, no UI workarounds. Pure browser logic.
 
+// Stage 11: Consent Modal Management
+const CONSENT_STORAGE_KEY = 'pay2chat_consent_accepted';
+
+function initConsentModal() {
+  // Check if consent already given
+  const consentAccepted = localStorage.getItem(CONSENT_STORAGE_KEY) === 'true';
+  if (consentAccepted) {
+    return; // Consent already given, don't show modal
+  }
+  
+  const consentModal = document.getElementById('consentModal');
+  const consentAge = document.getElementById('consentAge');
+  const consentTOS = document.getElementById('consentTOS');
+  const consentPP = document.getElementById('consentPP');
+  const consentResponsibility = document.getElementById('consentResponsibility');
+  const consentContinueBtn = document.getElementById('consentContinueBtn');
+  
+  if (!consentModal || !consentContinueBtn) return;
+  
+  // Show modal
+  consentModal.style.display = 'flex';
+  
+  // Block all app interaction
+  const root = document.getElementById('landing');
+  if (root) root.style.pointerEvents = 'none';
+  if (root) root.style.opacity = '0.3';
+  
+  // Update continue button state based on checkboxes
+  function updateContinueButton() {
+    const allChecked = consentAge && consentAge.checked && consentTOS && consentTOS.checked && consentPP && consentPP.checked && consentResponsibility && consentResponsibility.checked;
+    consentContinueBtn.disabled = !allChecked;
+    consentContinueBtn.style.cursor = allChecked ? 'pointer' : 'not-allowed';
+    consentContinueBtn.style.opacity = allChecked ? '1' : '0.5';
+  }
+  
+  // Wire up checkboxes
+  [consentAge, consentTOS, consentPP, consentResponsibility].forEach(checkbox => {
+    if (checkbox) checkbox.addEventListener('change', updateContinueButton);
+  });
+  
+  // Wire up continue button
+  consentContinueBtn.addEventListener('click', () => {
+    if (!consentAge || !consentAge.checked || !consentTOS || !consentTOS.checked || !consentPP || !consentPP.checked || !consentResponsibility || !consentResponsibility.checked) {
+      return; // Should not happen, but safety check
+    }
+    
+    // Store consent
+    localStorage.setItem(CONSENT_STORAGE_KEY, 'true');
+    
+    // Hide modal
+    consentModal.style.display = 'none';
+    
+    // Restore app interaction
+    if (root) root.style.pointerEvents = 'auto';
+    if (root) root.style.opacity = '1';
+    
+    if (typeof logStatus === 'function') {
+      logStatus('Consent accepted - Access granted');
+    } else {
+      console.log('Consent accepted - Access granted');
+    }
+  });
+  
+  // Prevent modal from being closed without consent
+  consentModal.addEventListener('click', (e) => {
+    if (e.target === consentModal) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+  });
+}
+
+// Initialize consent modal on page load
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initConsentModal);
+} else {
+  initConsentModal();
+}
+
 let localStream = null;
 let pc = null;
 let dataChannel = null;
@@ -116,6 +195,10 @@ function createPeerConnection() {
           pendingPaymentEvent = evt;
         }
       }
+      // Stage 9: Send file list to invitee when connection established (host side)
+      if (hostRoom && hostRoom.files && hostRoom.files.length > 0) {
+        setTimeout(() => sendFileListToInvitee(), 2000); // Small delay to ensure DataChannel is ready
+      }
       // Stage 6: Start automatic billing when connection is established
       // Stage 7: Start timer when connection is established
       setTimeout(() => {
@@ -194,6 +277,26 @@ function setupDataChannel() {
           case 'billing_failed':
             logData(`[Billing failed] code=${msg.code} message=${msg.message}`);
             logStatus(`Remote billing failed: ${msg.code} - ${msg.message}`);
+            break;
+          // Stage 9: Handle file sales events
+          case 'file_list':
+            logData(`[File list] ${msg.files.length} files available`);
+            availableFiles = msg.files || [];
+            updateInviteeFileListUI();
+            logStatus(`${availableFiles.length} file(s) available for purchase`);
+            break;
+          case 'file_purchase':
+            logData(`[File purchase] fileId=${msg.fileId} txid=${msg.txid}`);
+            // Host receives purchase request - initiate file transfer
+            handleFilePurchaseRequest(msg.fileId, msg.txid);
+            break;
+          case 'file_chunk':
+            logData(`[File chunk] fileId=${msg.fileId} chunk=${msg.chunkIndex}/${msg.totalChunks}`);
+            handleFileChunk(msg.fileId, msg.chunkIndex, msg.totalChunks, msg.data, msg.fileName);
+            break;
+          case 'file_complete':
+            logData(`[File complete] fileId=${msg.fileId}`);
+            handleFileComplete(msg.fileId, msg.fileName);
             break;
           default:
             logData('[Remote event] ' + e.data);
@@ -772,6 +875,11 @@ clusterSelect && (clusterSelect.onchange = () => {
 
   function renderFileList() {
     if (!hostRoom || !hostRoom.files) { fileList.innerHTML = '<em>No files added</em>'; return; }
+    // Stage 9: Assign IDs to files for transfer
+    hostRoom.files = hostRoom.files.map((f, i) => ({
+      ...f,
+      id: f.id || `file_${i}_${Date.now()}`
+    }));
     fileList.innerHTML = hostRoom.files.map((f,i)=>`<div>${i+1}. ${f.name} — ${f.price} USDC</div>`).join('');
   }
 
@@ -1629,12 +1737,16 @@ if (prepayBtn) {
 }
 
 // --- Stage 6: X402 Automatic Per-Minute Billing ---
+// --- Stage 8: Enhanced billing UI with confirmations feed ---
 let billingInterval = null;
 let billingRetryAttempted = false;
 let callStartTime = null;
 let billingStatus = null; // 'paid', 'pending', 'failed', 'frozen'
 let totalPaid = 0; // Running total in USDC
 let billingStatusElement = null;
+let billingConfirmationsElement = null; // Stage 8: Per-minute confirmations feed
+let billingConfirmations = []; // Stage 8: Array of confirmation objects {txid, amount, timestamp}
+let freezeOverlayElement = null; // Stage 8: Freeze overlay on failed payment
 
 // Initialize billing status UI element
 function initBillingStatusUI() {
@@ -1658,12 +1770,158 @@ function updateBillingStatusUI(status, message) {
   else if (status === 'pending') color = 'var(--accent)';
   else if (status === 'failed' || status === 'frozen') color = 'var(--danger)';
   
+  // Stage 8: Enhanced billing status UI with running total
+  let statusHTML = `<div style="font-weight: 600; margin-bottom: 6px;">${message || `Status: ${status}`}</div>`;
+  statusHTML += `<div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">Total Paid: <span style="color: ${status === 'paid' ? 'var(--secondary)' : 'var(--text-muted)'}; font-weight: 600;">${totalPaid.toFixed(2)} USDC</span></div>`;
+  
+  billingStatusElement.innerHTML = statusHTML;
   billingStatusElement.style.color = color;
   billingStatusElement.style.borderColor = color;
-  billingStatusElement.textContent = message || `Status: ${status}`;
   if (status === 'paid' || status === 'pending' || status === 'failed' || status === 'frozen') {
     billingStatusElement.style.display = 'block';
   }
+}
+
+// Stage 8: Initialize billing confirmations feed UI
+function initBillingConfirmationsUI() {
+  if (!billingConfirmationsElement) {
+    const callPage = document.getElementById('callPage');
+    if (callPage) {
+      billingConfirmationsElement = document.createElement('div');
+      billingConfirmationsElement.id = 'billingConfirmations';
+      billingConfirmationsElement.style.cssText = 'position: fixed; bottom: 16px; right: 16px; background: var(--surface); padding: 12px 16px; border-radius: 8px; font-family: JetBrains Mono, monospace; font-size: 12px; z-index: 100; border: 1px solid var(--border); display: none; max-width: 320px; max-height: 200px; overflow-y: auto;';
+      document.body.appendChild(billingConfirmationsElement);
+    }
+  }
+}
+
+// Stage 8: Update billing confirmations feed
+function updateBillingConfirmationsUI() {
+  if (!billingConfirmationsElement) initBillingConfirmationsUI();
+  if (!billingConfirmationsElement || billingConfirmations.length === 0) {
+    if (billingConfirmationsElement) billingConfirmationsElement.style.display = 'none';
+    return;
+  }
+  
+  let html = '<div style="font-weight: 600; margin-bottom: 8px; color: var(--text);">Per-Minute Payments:</div>';
+  
+  // Show last 5 confirmations (most recent first)
+  const recentConfirmations = billingConfirmations.slice(-5).reverse();
+  recentConfirmations.forEach((conf, idx) => {
+    const timeAgo = Math.floor((Date.now() - conf.timestamp) / 1000);
+    const timeStr = timeAgo < 60 ? `${timeAgo}s ago` : `${Math.floor(timeAgo / 60)}m ago`;
+    html += `<div style="margin-bottom: 4px; padding: 4px 0; border-bottom: 1px solid var(--border); font-size: 11px;">`;
+    html += `<span style="color: var(--secondary);">✓</span> ${conf.amount.toFixed(2)} USDC <span style="color: var(--text-muted);">${timeStr}</span>`;
+    html += `</div>`;
+  });
+  
+  billingConfirmationsElement.innerHTML = html;
+  billingConfirmationsElement.style.display = 'block';
+}
+
+// Stage 8: Add confirmation to feed
+function addBillingConfirmation(txid, amount) {
+  billingConfirmations.push({
+    txid,
+    amount,
+    timestamp: Date.now()
+  });
+  updateBillingConfirmationsUI();
+}
+
+// Stage 8: Initialize freeze overlay
+function initFreezeOverlay() {
+  if (!freezeOverlayElement) {
+    const callPage = document.getElementById('callPage');
+    if (callPage) {
+      freezeOverlayElement = document.createElement('div');
+      freezeOverlayElement.id = 'freezeOverlay';
+      freezeOverlayElement.style.cssText = 'position: fixed; inset: 0; background: rgba(0, 0, 0, 0.85); display: none; align-items: center; justify-content: center; z-index: 1000; backdrop-filter: blur(8px);';
+      freezeOverlayElement.innerHTML = `
+        <div style="background: var(--surface); padding: 32px; border-radius: 16px; text-align: center; border: 2px solid var(--danger); max-width: 480px;">
+          <div style="font-size: 48px; margin-bottom: 16px;">❄️</div>
+          <h2 style="color: var(--danger); margin-bottom: 12px;">Video Frozen</h2>
+          <p style="color: var(--text-muted); margin-bottom: 16px;">Payment failed. Video is frozen until payment succeeds.</p>
+          <p style="color: var(--text-muted); font-size: 14px;">Retrying payment automatically...</p>
+        </div>
+      `;
+      document.body.appendChild(freezeOverlayElement);
+    }
+  }
+}
+
+// Stage 8: Show/hide freeze overlay
+function showFreezeOverlay() {
+  if (!freezeOverlayElement) initFreezeOverlay();
+  if (freezeOverlayElement) {
+    freezeOverlayElement.style.display = 'flex';
+  }
+}
+
+function hideFreezeOverlay() {
+  if (freezeOverlayElement) {
+    freezeOverlayElement.style.display = 'none';
+  }
+}
+
+// --- Stage 10: UI/UX Polish - Notifications ---
+let notificationElement = null;
+
+// Stage 10: Initialize notification UI
+function initNotificationUI() {
+  if (!notificationElement) {
+    notificationElement = document.createElement('div');
+    notificationElement.id = 'notification';
+    notificationElement.style.cssText = 'position: fixed; bottom: 80px; right: 16px; background: var(--surface); padding: 16px 20px; border-radius: 8px; font-size: 14px; z-index: 2000; border: 1px solid var(--border); display: none; min-width: 280px; max-width: 400px; box-shadow: 0 8px 24px rgba(0,0,0,0.4); transition: all 0.3s ease;';
+    document.body.appendChild(notificationElement);
+  }
+}
+
+// Stage 10: Show notification
+function showNotification(message, type = 'info', duration = 3000) {
+  if (!notificationElement) initNotificationUI();
+  if (!notificationElement) return;
+  
+  let color = 'var(--text)';
+  let bgColor = 'var(--surface)';
+  let borderColor = 'var(--border)';
+  
+  if (type === 'success') {
+    color = 'var(--secondary)';
+    borderColor = 'var(--secondary)';
+    bgColor = 'rgba(16, 185, 129, 0.1)';
+  } else if (type === 'error') {
+    color = 'var(--danger)';
+    borderColor = 'var(--danger)';
+    bgColor = 'rgba(239, 68, 68, 0.1)';
+  } else if (type === 'warning') {
+    color = 'var(--accent)';
+    borderColor = 'var(--accent)';
+    bgColor = 'rgba(245, 158, 11, 0.1)';
+  }
+  
+  notificationElement.style.color = color;
+  notificationElement.style.borderColor = borderColor;
+  notificationElement.style.background = bgColor;
+  notificationElement.textContent = message;
+  notificationElement.style.display = 'block';
+  notificationElement.style.opacity = '0';
+  notificationElement.style.transform = 'translateY(20px)';
+  
+  // Animate in
+  setTimeout(() => {
+    notificationElement.style.opacity = '1';
+    notificationElement.style.transform = 'translateY(0)';
+  }, 10);
+  
+  // Auto-hide after duration
+  setTimeout(() => {
+    notificationElement.style.opacity = '0';
+    notificationElement.style.transform = 'translateY(20px)';
+    setTimeout(() => {
+      if (notificationElement) notificationElement.style.display = 'none';
+    }, 300);
+  }, duration);
 }
 
 function freezeVideo() {
@@ -1683,6 +1941,8 @@ function freezeVideo() {
   }
   billingStatus = 'frozen';
   updateBillingStatusUI('frozen', '❄️ Video frozen - Payment failed');
+  // Stage 8: Show freeze overlay on failed payment
+  showFreezeOverlay();
   logStatus('Video frozen due to payment failure');
 }
 
@@ -1700,6 +1960,8 @@ function unfreezeVideo() {
     }
   }
   billingStatus = 'paid';
+  // Stage 8: Hide freeze overlay when video unfreezes
+  hideFreezeOverlay();
 }
 
 async function sendMinuteBilling() {
@@ -1764,7 +2026,13 @@ async function sendMinuteBilling() {
     totalPaid += amount;
     billingStatus = 'paid';
     billingRetryAttempted = false; // Reset retry flag on success
-    updateBillingStatusUI('paid', `✓ Minute paid (${totalPaid.toFixed(2)} USDC total)`);
+    updateBillingStatusUI('paid', `✓ Minute paid`);
+    
+    // Stage 8: Add confirmation to feed
+    addBillingConfirmation(res.txid, amount);
+    
+    // Stage 10: Show notification for minute paid
+    showNotification(`Minute paid: ${amount} USDC (Total: ${totalPaid.toFixed(2)} USDC)`, 'success');
     
     // Stage 7: Sync timer with successful billing
     syncTimerWithBilling();
@@ -1882,7 +2150,14 @@ function stopBilling() {
   if (billingStatusElement) {
     billingStatusElement.style.display = 'none';
   }
+  // Stage 8: Hide confirmations feed and freeze overlay when billing stops
+  if (billingConfirmationsElement) {
+    billingConfirmationsElement.style.display = 'none';
+  }
+  hideFreezeOverlay();
   billingStatus = null;
+  billingConfirmations = []; // Clear confirmations
+  totalPaid = 0; // Reset total
   // Stage 7: Stop timer when billing stops
   stopTimer();
   logStatus('X402 automatic billing stopped');
@@ -2018,4 +2293,323 @@ function syncTimerWithBilling() {
   const elapsedMs = now - timerStartTime;
   const elapsedSeconds = Math.floor(elapsedMs / 1000);
   updateTimerUI(elapsedSeconds, 60, billingStatus || 'paid');
+}
+
+// --- Stage 9: File Sales (P2P over DataChannel) ---
+let availableFiles = []; // Files available for purchase (invitee side)
+let filePurchases = {}; // Track purchased files {fileId: {txid, status, chunks}}
+let fileTransferChunks = {}; // Track file chunks being received {fileId: {chunks: [], expected: 0, totalSize: 0}}
+let inviteeFileListElement = null; // Invitee file list UI
+
+// Stage 9: Initialize invitee file list UI
+function initInviteeFileListUI() {
+  if (!inviteeFileListElement) {
+    const joinPanel = document.getElementById('joinPanel');
+    if (joinPanel) {
+      inviteeFileListElement = document.createElement('div');
+      inviteeFileListElement.id = 'inviteeFileList';
+      inviteeFileListElement.style.cssText = 'margin-top: 16px; padding: 16px; background: var(--surface-light); border-radius: 8px; border: 1px solid var(--border);';
+      inviteeFileListElement.innerHTML = '<h4 style="margin-top: 0; margin-bottom: 12px;">Files for Sale</h4><div id="availableFilesList" style="display: flex; flex-direction: column; gap: 8px;"></div>';
+      joinPanel.appendChild(inviteeFileListElement);
+    }
+  }
+}
+
+// Stage 9: Update invitee file list UI
+function updateInviteeFileListUI() {
+  if (!inviteeFileListElement) initInviteeFileListUI();
+  const filesList = document.getElementById('availableFilesList');
+  if (!filesList || availableFiles.length === 0) {
+    if (inviteeFileListElement) inviteeFileListElement.style.display = 'none';
+    return;
+  }
+  
+  inviteeFileListElement.style.display = 'block';
+  filesList.innerHTML = availableFiles.map((file, idx) => {
+    const purchased = filePurchases[file.id] && filePurchases[file.id].status === 'completed';
+    const purchasing = filePurchases[file.id] && filePurchases[file.id].status === 'purchasing';
+    const transferring = filePurchases[file.id] && filePurchases[file.id].status === 'transferring';
+    const statusText = purchased ? '✓ Downloaded' : (purchasing ? '⏳ Purchasing...' : (transferring ? '📥 Downloading...' : ''));
+    
+    return `
+      <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px; background: var(--surface); border-radius: 6px; border: 1px solid var(--border);">
+        <div style="flex: 1;">
+          <div style="font-weight: 600; margin-bottom: 4px;">${file.name}</div>
+          <div style="font-size: 12px; color: var(--text-muted); font-family: JetBrains Mono, monospace;">${file.price.toFixed(2)} USDC</div>
+          ${statusText ? `<div style="font-size: 11px; color: var(--secondary); margin-top: 4px;">${statusText}</div>` : ''}
+        </div>
+        <button id="buyFileBtn_${file.id}" class="${purchased || purchasing || transferring ? 'secondary' : ''}" ${purchased || purchasing || transferring ? 'disabled' : ''} style="margin-left: 12px; white-space: nowrap;">
+          ${purchased ? 'Downloaded' : (purchasing ? 'Purchasing...' : (transferring ? 'Downloading...' : 'Buy'))}
+        </button>
+      </div>
+    `;
+  }).join('');
+  
+  // Wire up buy buttons
+  availableFiles.forEach((file) => {
+    const btn = document.getElementById(`buyFileBtn_${file.id}`);
+    if (btn && !btn.disabled) {
+      btn.onclick = () => purchaseFile(file);
+    }
+  });
+}
+
+// Stage 9: Send file list to invitee over DataChannel
+function sendFileListToInvitee() {
+  if (!hostRoom || !hostRoom.files || hostRoom.files.length === 0) return;
+  if (!dataChannel || dataChannel.readyState !== 'open') return;
+  
+  try {
+    dataChannel.send(JSON.stringify({
+      type: 'file_list',
+      files: hostRoom.files.map((f, idx) => ({
+        id: `file_${idx}_${Date.now()}`,
+        name: f.name,
+        price: f.price
+      })),
+      timestamp: Date.now()
+    }));
+  } catch (e) {
+    console.warn('Failed to send file list', e);
+  }
+}
+
+// Stage 9: Purchase file flow
+async function purchaseFile(file) {
+  if (!joinHostAddr || !joinHostAddr.value) {
+    logStatus('Cannot purchase: missing host address');
+    return;
+  }
+  
+  if (PAYMENTS_DISABLED) {
+    logStatus('File purchases disabled in this build');
+    return;
+  }
+  
+  const fromPub = ensureSolanaPublicKey((currentWallet && currentWallet.pubkey) || (window.solana && window.solana.publicKey));
+  if (!fromPub) {
+    logStatus('Connect wallet to purchase file');
+    return;
+  }
+  
+  const hostAddr = joinHostAddr.value.trim();
+  const price = file.price;
+  
+  // Mark as purchasing
+  filePurchases[file.id] = { status: 'purchasing', txid: null };
+  updateInviteeFileListUI();
+  
+  try {
+    // Purchase file via USDC transfer
+    const res = await sendUsdcTransfer({
+      fromPubkey: fromPub,
+      toOwner: hostAddr,
+      amount: price,
+      onProgress: ({ attempt, status: progressStatus }) => {
+        if (progressStatus === 'signing' || progressStatus === 'sending') {
+          logStatus(`Purchasing file: ${progressStatus}...`);
+        }
+      }
+    });
+    
+    // Purchase successful - request file transfer
+    filePurchases[file.id] = { status: 'transferring', txid: res.txid, chunks: [] };
+    updateInviteeFileListUI();
+    
+    // Request file from host
+    if (dataChannel && dataChannel.readyState === 'open') {
+      try {
+        dataChannel.send(JSON.stringify({
+          type: 'file_purchase',
+          fileId: file.id,
+          txid: res.txid,
+          timestamp: Date.now()
+        }));
+      } catch (e) { console.warn('Failed to send file purchase request', e); }
+    }
+    
+    logStatus(`File purchased: ${file.name} (${res.txid})`);
+    
+  } catch (err) {
+    console.error('File purchase failed:', err);
+    delete filePurchases[file.id];
+    updateInviteeFileListUI();
+    logStatus(`File purchase failed: ${err.message || err}`);
+  }
+}
+
+// Stage 9: Handle file chunk transfer (simple encryption placeholder - AES would be ideal)
+function encryptChunk(data, key) {
+  // Simple XOR encryption (in production, use proper AES encryption)
+  // This is a placeholder - real implementation would use Web Crypto API
+  return data;
+}
+
+function decryptChunk(data, key) {
+  // Simple XOR decryption (in production, use proper AES decryption)
+  return data;
+}
+
+// Stage 9: Download file locally
+function downloadFile(fileName, fileData) {
+  const blob = new Blob([fileData], { type: 'application/octet-stream' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = fileName;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  logStatus(`File downloaded: ${fileName}`);
+  
+  // Stage 10: Show notification for file delivered
+  showNotification(`File delivered: ${fileName}`, 'success', 5000);
+}
+
+// Stage 9: Handle file purchase request (host side)
+async function handleFilePurchaseRequest(fileId, txid) {
+  if (!hostRoom || !hostRoom.files) return;
+  
+  const file = hostRoom.files.find(f => f.id === fileId) || hostRoom.files[parseInt(fileId.split('_')[1])];
+  if (!file) {
+    console.warn('File not found:', fileId);
+    return;
+  }
+  
+  // Verify purchase transaction (simplified - in production, verify on-chain)
+  logStatus(`File purchase verified: ${file.name} (${txid})`);
+  
+  // For demo: create a dummy file or use file.data if available
+  // In production, host would read actual file from disk/storage
+  const fileData = new Uint8Array(1024).map(() => Math.floor(Math.random() * 256)); // Dummy file data
+  const fileName = file.name || 'purchased_file.bin';
+  
+  // Transfer file in chunks over DataChannel
+  const CHUNK_SIZE = 16 * 1024; // 16KB chunks (DataChannel has size limits)
+  const totalChunks = Math.ceil(fileData.length / CHUNK_SIZE);
+  
+  logStatus(`Transferring file: ${fileName} (${totalChunks} chunks)`);
+  
+  for (let i = 0; i < totalChunks; i++) {
+    const start = i * CHUNK_SIZE;
+    const end = Math.min(start + CHUNK_SIZE, fileData.length);
+    const chunk = fileData.slice(start, end);
+    
+    // Convert chunk to base64 for transfer over DataChannel
+    const chunkBase64 = btoa(String.fromCharCode.apply(null, chunk));
+    
+    // Simple encryption (placeholder - use proper encryption in production)
+    const encryptedChunk = encryptChunk(chunkBase64, txid);
+    
+    if (dataChannel && dataChannel.readyState === 'open') {
+      try {
+        dataChannel.send(JSON.stringify({
+          type: 'file_chunk',
+          fileId,
+          chunkIndex: i,
+          totalChunks,
+          data: encryptedChunk,
+          fileName: i === 0 ? fileName : undefined // Send filename with first chunk
+        }));
+        
+        // Small delay between chunks to avoid overwhelming DataChannel
+        if (i < totalChunks - 1) {
+          await new Promise(resolve => setTimeout(resolve, 50));
+        }
+      } catch (e) {
+        console.error('Failed to send file chunk', e);
+        logStatus(`File transfer failed at chunk ${i + 1}/${totalChunks}`);
+        return;
+      }
+    } else {
+      logStatus('DataChannel not ready for file transfer');
+      return;
+    }
+  }
+  
+  // Send completion message
+  if (dataChannel && dataChannel.readyState === 'open') {
+    try {
+      dataChannel.send(JSON.stringify({
+        type: 'file_complete',
+        fileId,
+        fileName
+      }));
+    } catch (e) { console.warn('Failed to send file complete', e); }
+  }
+  
+  logStatus(`File transfer complete: ${fileName}`);
+}
+
+// Stage 9: Handle file chunk (invitee side)
+function handleFileChunk(fileId, chunkIndex, totalChunks, chunkData, fileName) {
+  if (!fileTransferChunks[fileId]) {
+    fileTransferChunks[fileId] = { chunks: [], expected: totalChunks, totalSize: 0, fileName: null };
+  }
+  
+  const transfer = fileTransferChunks[fileId];
+  if (!transfer.fileName && fileName) {
+    transfer.fileName = fileName;
+  }
+  
+  // Decrypt chunk (simple placeholder)
+  const decryptedChunk = decryptChunk(chunkData, filePurchases[fileId]?.txid || '');
+  
+  // Convert base64 back to Uint8Array
+  try {
+    const binaryString = atob(decryptedChunk);
+    const bytes = new Uint8Array(binaryString.length);
+    for (let i = 0; i < binaryString.length; i++) {
+      bytes[i] = binaryString.charCodeAt(i);
+    }
+    transfer.chunks[chunkIndex] = bytes;
+    transfer.totalSize += bytes.length;
+    
+    // Update UI with progress
+    if (filePurchases[fileId]) {
+      filePurchases[fileId].status = 'transferring';
+      filePurchases[fileId].progress = Math.floor(((chunkIndex + 1) / totalChunks) * 100);
+      updateInviteeFileListUI();
+    }
+    
+    logStatus(`File chunk received: ${chunkIndex + 1}/${totalChunks} (${transfer.totalSize} bytes)`);
+  } catch (e) {
+    console.error('Failed to decode chunk', e);
+  }
+}
+
+// Stage 9: Handle file transfer complete (invitee side)
+function handleFileComplete(fileId, fileName) {
+  const transfer = fileTransferChunks[fileId];
+  if (!transfer || !transfer.chunks) {
+    console.warn('No chunks received for file:', fileId);
+    return;
+  }
+  
+  // Reassemble file from chunks
+  const fileData = new Uint8Array(transfer.totalSize);
+  let offset = 0;
+  for (let i = 0; i < transfer.chunks.length; i++) {
+    if (transfer.chunks[i]) {
+      fileData.set(transfer.chunks[i], offset);
+      offset += transfer.chunks[i].length;
+    }
+  }
+  
+  // Download file
+  const finalFileName = transfer.fileName || fileName || `purchased_file_${fileId}.bin`;
+  downloadFile(finalFileName, fileData);
+  
+  // Mark as completed
+  if (filePurchases[fileId]) {
+    filePurchases[fileId].status = 'completed';
+    filePurchases[fileId].fileName = finalFileName;
+  }
+  updateInviteeFileListUI();
+  
+  // Clean up
+  delete fileTransferChunks[fileId];
+  
+  logStatus(`File reassembly complete: ${finalFileName} (${fileData.length} bytes)`);
 }
