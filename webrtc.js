@@ -496,7 +496,7 @@ clusterSelect && (clusterSelect.onchange = () => {
 
   function showPanel(name) {
     // hide landing overlay if present when navigating into panels
-    try { const _land = document.getElementById('landing'); if (_land) _land.style.display = 'none'; } catch(e){}
+    try { const _land = document.getElementById('landing'); if (_land) _land.style.display = 'none'; } catch(e){} // Keep inline for landing overlay
     if (name === 'create') {
       createPanel.style.display = 'block';
       joinPanel.style.display = 'none';
@@ -516,8 +516,8 @@ clusterSelect && (clusterSelect.onchange = () => {
   const landing = document.getElementById('landing');
   const landingCreateBtn = document.getElementById('landingCreateBtn');
   const landingJoinBtn = document.getElementById('landingJoinBtn');
-  if (landingCreateBtn) landingCreateBtn.onclick = () => { if (landing) landing.style.display = 'none'; navigateTo('create'); };
-  if (landingJoinBtn) landingJoinBtn.onclick = () => { if (landing) landing.style.display = 'none'; navigateTo('join'); };
+  if (landingCreateBtn) landingCreateBtn.onclick = () => { if (landing) landing.style.display = 'none'; navigateTo('create'); }; // Keep inline for landing overlay
+  if (landingJoinBtn) landingJoinBtn.onclick = () => { if (landing) landing.style.display = 'none'; navigateTo('join'); }; // Keep inline for landing overlay
 
   // Role-based UI update: hosts should not send USDC from the browser test widget
   function updateRoleUI() {
@@ -546,7 +546,7 @@ clusterSelect && (clusterSelect.onchange = () => {
       if (page === 'join' && jp) jp.style.display = 'block';
       if (page === 'call' && call) call.style.display = 'block';
       // hide landing overlay when navigating
-      try { if (landing) landing.style.display = 'none'; } catch(e){}
+      try { if (landing) landing.style.display = 'none'; } catch(e){} // Keep inline for landing overlay
     } catch (e) { /* ignore */ }
   }
 
@@ -562,20 +562,26 @@ clusterSelect && (clusterSelect.onchange = () => {
   const copyLocalSdpBtn = document.getElementById('copyLocalSdpBtn');
   const acceptRemoteSdpBtn = document.getElementById('acceptRemoteSdpBtn');
   const closeSdpModal = document.getElementById('closeSdpModal');
-  function showSdpModal() { if (sdpModal) sdpModal.style.display = 'flex'; }
-  function hideSdpModal() { if (sdpModal) sdpModal.style.display = 'none'; }
+  function showSdpModal() { if (sdpModal) sdpModal.classList.add('active'); }
+  function hideSdpModal() { if (sdpModal) sdpModal.classList.remove('active'); }
   if (copyLocalSdpBtn) copyLocalSdpBtn.onclick = async () => { try { const txt = (localSDP && localSDP.value) || ''; await navigator.clipboard.writeText(txt); copyLocalSdpBtn.textContent = 'Copied'; setTimeout(()=>copyLocalSdpBtn.textContent = 'Copy Local SDP',1500); } catch(e){ console.warn(e); } };
   if (closeSdpModal) closeSdpModal.onclick = hideSdpModal;
   // Convert SDP modal into step-by-step flow: hide raw JSON and use clipboard/prompt
   function renderSdpStepModalForHost() {
     if (!sdpModal) return;
-    sdpModal.style.display = 'flex';
+    sdpModal.classList.add('active');
     sdpModal.innerHTML = `
-      <div style="background:#0b0f10;padding:16px;border-radius:8px;width:520px;">
-        <h3 style="margin-top:0;color:#fff;">Signaling — Host</h3>
-        <div style="margin-top:8px;color:#ccc;">Step 1: Click <strong>Copy Offer</strong> and share it with your guest (clipboard).</div>
-        <div style="margin-top:12px;display:flex;gap:8px;"><button id="stepCopyOffer">Copy Offer</button><button id="stepPasteAnswer">Paste Answer (from guest)</button><span id="sdpStatus" style="margin-left:8px;color:#9aa;"></span></div>
-        <div style="text-align:right;margin-top:10px;"><button id="sdpCloseBtn">Close</button></div>
+      <div class="modal" style="max-width: 560px;">
+        <h3>Signaling — Host</h3>
+        <div class="muted" style="margin-bottom: 16px;">Step 1: Click <strong>Copy Offer</strong> and share it with your guest (clipboard).</div>
+        <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:16px;">
+          <button id="stepCopyOffer">Copy Offer</button>
+          <button id="stepPasteAnswer" class="secondary">Paste Answer (from guest)</button>
+          <span id="sdpStatus" style="color:#9CA3AF;font-size:14px;"></span>
+        </div>
+        <div class="actions">
+          <button id="sdpCloseBtn" class="secondary">Close</button>
+        </div>
       </div>`;
     // wire buttons
     const btnCopy = document.getElementById('stepCopyOffer');
@@ -612,13 +618,19 @@ clusterSelect && (clusterSelect.onchange = () => {
 
   function renderSdpStepModalForInvitee() {
     if (!sdpModal) return;
-    sdpModal.style.display = 'flex';
+    sdpModal.classList.add('active');
     sdpModal.innerHTML = `
-      <div style="background:#0b0f10;padding:16px;border-radius:8px;width:520px;">
-        <h3 style="margin-top:0;color:#fff;">Signaling — Guest</h3>
-        <div style="margin-top:8px;color:#ccc;">Step 1: Click <strong>Paste Host Offer</strong> (reads clipboard or prompts). Step 2: Click <strong>Copy Answer</strong> and send it back to the host.</div>
-        <div style="margin-top:12px;display:flex;gap:8px;"><button id="stepPasteOffer">Paste Host Offer</button><button id="stepCopyAnswer" disabled>Copy Answer</button><span id="sdpStatusGuest" style="margin-left:8px;color:#9aa;"></span></div>
-        <div style="text-align:right;margin-top:10px;"><button id="sdpCloseBtnGuest">Close</button></div>
+      <div class="modal" style="max-width: 560px;">
+        <h3>Signaling — Guest</h3>
+        <div class="muted" style="margin-bottom: 16px;">Step 1: Click <strong>Paste Host Offer</strong> (reads clipboard or prompts). Step 2: Click <strong>Copy Answer</strong> and send it back to the host.</div>
+        <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:16px;">
+          <button id="stepPasteOffer">Paste Host Offer</button>
+          <button id="stepCopyAnswer" disabled>Copy Answer</button>
+          <span id="sdpStatusGuest" style="color:#9CA3AF;font-size:14px;"></span>
+        </div>
+        <div class="actions">
+          <button id="sdpCloseBtnGuest" class="secondary">Close</button>
+        </div>
       </div>`;
     const btnPaste = document.getElementById('stepPasteOffer');
     const btnCopy = document.getElementById('stepCopyAnswer');
@@ -755,6 +767,17 @@ clusterSelect && (clusterSelect.onchange = () => {
       hostRoom.inviteLink = invite;
       roomInfoSpan.innerHTML = `Room created. Invite: <a href="${invite}" target="_blank">${invite}</a>`;
       try { if (copyInviteBtn) { copyInviteBtn.style.display = 'inline-block'; copyInviteBtn.onclick = async () => { try { await navigator.clipboard.writeText(hostRoom.inviteLink || ''); copyInviteBtn.textContent = 'Copied'; setTimeout(()=>copyInviteBtn.textContent = 'Copy Invite',1400); } catch(e){ console.warn(e); } }; } } catch(e){}
+      // wire connect signaling button if present
+      try {
+        const connectBtn = document.getElementById('connectSignalingBtn');
+        if (connectBtn) {
+          connectBtn.onclick = () => {
+            const wsUrl = (document.getElementById('signalingUrl') && document.getElementById('signalingUrl').value) || null;
+            const room = (document.getElementById('signalingRoom') && document.getElementById('signalingRoom').value) || null;
+            if (wsUrl) window.signaling.connectWebsocket(wsUrl, room);
+          };
+        }
+      } catch(e){}
     };
   }
 
@@ -819,6 +842,15 @@ clusterSelect && (clusterSelect.onchange = () => {
         } catch(e){}
         // show host step-by-step modal to let host copy offer if needed
         renderSdpStepModalForHost();
+        // If signaling WS is connected and auto-send is checked, send offer
+        try {
+          const auto = (document.getElementById('autoSendOffer') && document.getElementById('autoSendOffer').checked);
+          if (auto && window.signaling && window.signaling._ws && window.signaling._ws.readyState === 1) {
+            const room = (document.getElementById('signalingRoom') && document.getElementById('signalingRoom').value) || window.signaling._room;
+            await window.signaling.sendOfferToRoom(room);
+            roomInfoSpan.innerHTML += ' <span style="color:#9aa;">(offer auto-sent)</span>';
+          }
+        } catch(e) { console.warn('Auto-send offer failed', e); }
       } catch (e) { console.warn('Begin session failed', e); }
     };
   }
@@ -935,6 +967,14 @@ clusterSelect && (clusterSelect.onchange = () => {
           }
           // show step-by-step SDP modal for invitee (manual flow)
           renderSdpStepModalForInvitee();
+          // If signaling WS is connected, ensure the client joined the room so host can send offers
+          try {
+            const wsUrl = (document.getElementById('signalingUrl') && document.getElementById('signalingUrl').value) || null;
+            const room = (document.getElementById('signalingRoom') && document.getElementById('signalingRoom').value) || null;
+            if (wsUrl && room && window.signaling && (!window.signaling._ws || window.signaling._room !== room)) {
+              window.signaling.connectWebsocket(wsUrl, room);
+            }
+          } catch(e) { /* ignore */ }
         } else {
           prepayStatus.style.color = '#f66'; prepayStatus.textContent = 'Invalid invite link';
         }
@@ -1223,7 +1263,7 @@ function showSolTopupModal(requiredSol, currentSol, walletPubkey) {
     req.textContent = String(requiredSol);
     cur.textContent = (typeof currentSol === 'number') ? String(currentSol) : '-';
     addr.textContent = (walletPubkey && walletPubkey.toString) ? walletPubkey.toString() : (walletPubkey || '');
-    modal.style.display = 'flex';
+    modal.classList.add('active');
     recheck.onclick = async () => {
       try {
         const pk = ensureSolanaPublicKey((currentWallet && currentWallet.pubkey) || (window.solana && window.solana.publicKey));
@@ -1238,11 +1278,11 @@ function showSolTopupModal(requiredSol, currentSol, walletPubkey) {
         }
       } catch (e) { console.warn('Recheck failed', e); }
     };
-    close.onclick = () => { modal.style.display = 'none'; };
+    close.onclick = () => { modal.classList.remove('active'); };
   } catch (e) { console.warn('showSolTopupModal error', e); }
 }
 
-function hideSolTopupModal() { try { const m = document.getElementById('solTopupModal'); if (m) m.style.display = 'none'; } catch(e){} }
+function hideSolTopupModal() { try { const m = document.getElementById('solTopupModal'); if (m) m.classList.remove('active'); } catch(e){} }
 
 function rpcForCluster() {
   return rpcUrlForCluster(clusterSelect.value || 'mainnet');

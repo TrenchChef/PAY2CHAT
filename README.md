@@ -61,12 +61,16 @@ Files added:
 Run locally (from project root):
 
 ```bash
-# install dependencies
+# install dependencies (only needed for signaling server)
 npm init -y
-npm install ws
+npm install ws dotenv
 
-# run signaling server
+# Start just the signaling server
 node server.js
+
+# OR run both signaling + static server together (new helper)
+# This will start the signaling server and a local static http server on port 8080
+npm run dev
 ```
 
 Signaling client usage (in the browser console):

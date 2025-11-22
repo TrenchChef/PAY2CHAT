@@ -4,113 +4,533 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Pay2Chat - P2P Video Chat</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <style>
-    body { font-family: sans-serif; background: #181c20; color: #f5f5f5; margin: 0; padding: 0; }
-    .container { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; }
-    video { width: 320px; height: 240px; background: #222; margin: 8px; }
-    .row { display: flex; gap: 16px; }
-    textarea { width: 320px; height: 80px; margin: 8px 0; }
-    button { margin: 8px; padding: 8px 16px; font-size: 1rem; }
-    /* Landing / home overlay */
-    #landing { position: fixed; inset: 0; display:flex; align-items:center; justify-content:center; background: rgba(0,0,0,0.7); z-index: 30; }
-    #landing .card { background: #0f1416; border-radius:8px; padding:28px; text-align:center; box-shadow:0 6px 30px rgba(0,0,0,0.6); }
-    #landing .card h2 { margin-top:0; }
-    /* SOL top-up modal */
-    #solTopupModal { position: fixed; inset: 0; display: none; align-items:center; justify-content:center; background: rgba(0,0,0,0.6); z-index: 50; }
-    #solTopupModal .modal { background:#0b0f10; color:#eee; padding:20px; border-radius:10px; width:480px; box-shadow:0 8px 40px rgba(0,0,0,0.7); }
-    #solTopupModal .modal h3 { margin:0 0 8px 0; }
-    #solTopupModal .modal .muted { color:#9aa; font-size:0.9rem; }
-    #solTopupModal .modal .walletAddr { font-family: monospace; background:#071017; padding:8px; border-radius:6px; margin:8px 0; overflow:auto; }
-    #solTopupModal .modal .actions { display:flex; gap:8px; justify-content:flex-end; margin-top:12px; }
+    /* Design System Variables */
+    :root {
+      --primary: #7C3AED;
+      --primary-hover: #8B5CF6;
+      --secondary: #10B981;
+      --accent: #F59E0B;
+      --background: #1F2937;
+      --surface: #374151;
+      --surface-light: #4B5563;
+      --text: #F9FAFB;
+      --text-muted: #9CA3AF;
+      --border: #4B5563;
+      --danger: #EF4444;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--background);
+      color: var(--text);
+      margin: 0;
+      padding: 0;
+      line-height: 1.5;
+    }
+
+    .container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      min-height: 100vh;
+      padding: 16px;
+      max-width: 1200px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    /* Typography */
+    h1, h2, h3, h4 {
+      font-weight: 700;
+      margin: 0;
+      color: var(--text);
+    }
+    h1 { font-size: 24px; line-height: 32px; }
+    h2 { font-size: 20px; line-height: 28px; }
+    h3 { font-size: 16px; line-height: 24px; }
+    h4 { font-size: 14px; line-height: 20px; }
+
+    p {
+      font-size: 14px;
+      line-height: 20px;
+      color: var(--text-muted);
+    }
+
+    /* Buttons */
+    button {
+      font-family: 'Inter', sans-serif;
+      font-weight: 500;
+      font-size: 14px;
+      padding: 12px 24px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      background: var(--primary);
+      color: white;
+      margin: 4px;
+    }
+    button:hover:not(:disabled) {
+      background: var(--primary-hover);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3);
+    }
+    button:active:not(:disabled) {
+      transform: translateY(0);
+    }
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    button.secondary {
+      background: transparent;
+      border: 1px solid var(--primary);
+      color: var(--primary);
+    }
+    button.secondary:hover:not(:disabled) {
+      background: var(--primary);
+      color: white;
+    }
+    button.danger {
+      background: var(--danger);
+    }
+    button.danger:hover:not(:disabled) {
+      background: #DC2626;
+    }
+
+    /* Inputs */
+    input[type="text"],
+    input[type="number"],
+    textarea,
+    select {
+      font-family: 'Inter', sans-serif;
+      font-size: 14px;
+      padding: 10px 12px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      width: 100%;
+      transition: all 0.15s ease;
+    }
+    input[type="text"]:focus,
+    input[type="number"]:focus,
+    textarea:focus,
+    select:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1);
+    }
+    input[type="text"].monospace,
+    textarea.monospace {
+      font-family: 'JetBrains Mono', 'Courier New', monospace;
+      font-size: 14px;
+    }
+
+    label {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text);
+      display: block;
+      margin-bottom: 6px;
+    }
+
+    /* Video Elements */
+    .row {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    video {
+      width: 100%;
+      max-width: 480px;
+      height: auto;
+      aspect-ratio: 16 / 9;
+      background: #111;
+      border-radius: 12px;
+      object-fit: cover;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    }
+
+    /* Cards */
+    .card {
+      background: var(--surface);
+      border-radius: 12px;
+      padding: 24px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+    }
+
+    /* Header */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      padding: 16px 0;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 24px;
+    }
+    header .logo {
+      font-weight: 700;
+      font-size: 18px;
+      color: var(--primary);
+    }
+    nav a {
+      font-size: 14px;
+      color: var(--text-muted);
+      text-decoration: none;
+      margin-right: 16px;
+      transition: color 0.15s ease;
+    }
+    nav a:hover {
+      color: var(--text);
+    }
+
+    /* Badges */
+    .badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 500;
+      background: var(--surface);
+      color: var(--text-muted);
+    }
+    .badge.success {
+      background: rgba(16, 185, 129, 0.2);
+      color: var(--secondary);
+    }
+
+    /* Landing Overlay */
+    #landing {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0, 0, 0, 0.85);
+      backdrop-filter: blur(8px);
+      z-index: 1000;
+    }
+    #landing .card {
+      background: var(--surface);
+      border-radius: 16px;
+      padding: 48px;
+      text-align: center;
+      max-width: 480px;
+      width: 90%;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+    }
+    #landing .card h2 {
+      margin-bottom: 12px;
+      font-size: 28px;
+    }
+    #landing .card p {
+      margin-bottom: 24px;
+    }
+    #landing .card .button-group {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      margin-top: 24px;
+    }
+
+    /* Modals */
+    #solTopupModal,
+    #sdpModal {
+      position: fixed;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(8px);
+      z-index: 2000;
+      padding: 16px;
+    }
+    #solTopupModal.active,
+    #sdpModal.active {
+      display: flex;
+    }
+    .modal {
+      background: var(--surface);
+      color: var(--text);
+      padding: 32px;
+      border-radius: 16px;
+      max-width: 560px;
+      width: 100%;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+    .modal h3 {
+      margin-bottom: 16px;
+      font-size: 20px;
+    }
+    .modal .muted {
+      color: var(--text-muted);
+      font-size: 14px;
+      line-height: 20px;
+    }
+    .modal .walletAddr {
+      font-family: 'JetBrains Mono', monospace;
+      background: var(--background);
+      padding: 12px;
+      border-radius: 8px;
+      margin: 12px 0;
+      overflow-x: auto;
+      font-size: 13px;
+      border: 1px solid var(--border);
+    }
+    .modal .actions {
+      display: flex;
+      gap: 12px;
+      justify-content: flex-end;
+      margin-top: 24px;
+    }
+
+    /* Sections */
+    section {
+      width: 100%;
+      margin: 24px 0;
+    }
+    .section-card {
+      background: var(--surface);
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 24px;
+    }
+
+    /* Status Indicators */
+    .status-dot {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      margin-right: 6px;
+    }
+    .status-dot.connected {
+      background: var(--secondary);
+      box-shadow: 0 0 8px rgba(16, 185, 129, 0.5);
+    }
+    .status-dot.connecting {
+      background: var(--accent);
+      animation: pulse 2s infinite;
+    }
+    .status-dot.disconnected {
+      background: var(--danger);
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    /* Call Page */
+    #callPage {
+      width: 100%;
+      position: relative;
+    }
+    #callPage .video-container {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    #callPage .controls {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      padding: 16px;
+      background: rgba(31, 41, 55, 0.8);
+      backdrop-filter: blur(12px);
+      border-radius: 16px;
+      margin-top: 16px;
+    }
+    #callPage .controls button {
+      padding: 12px 20px;
+    }
+
+    /* Forms */
+    .form-group {
+      margin-bottom: 16px;
+    }
+    .form-row {
+      display: flex;
+      gap: 12px;
+      align-items: flex-end;
+    }
+    .form-row .form-group {
+      flex: 1;
+      margin-bottom: 0;
+    }
+
+    /* Info Cards */
+    .info-card {
+      background: var(--surface);
+      border: 1px solid rgba(124, 58, 237, 0.2);
+      border-radius: 8px;
+      padding: 16px;
+      margin: 12px 0;
+    }
+    .info-card.success {
+      background: rgba(16, 185, 129, 0.1);
+      border-color: rgba(16, 185, 129, 0.3);
+      color: var(--secondary);
+    }
+
+    /* Code/Monospace Elements */
+    code {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      background: var(--background);
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: var(--text);
+    }
+
+    /* Dividers */
+    hr {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 24px 0;
+      width: 100%;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .container {
+        padding: 12px;
+      }
+      header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+      }
+      #landing .card {
+        padding: 32px 24px;
+      }
+      .modal {
+        padding: 24px;
+      }
+    }
+
+    /* Connection State */
+    #connState {
+      display: inline-flex;
+      align-items: center;
+      font-size: 14px;
+      color: var(--text-muted);
+    }
   </style>
 </head>
 <body>
   <div id="landing">
     <div class="card">
       <h2>Welcome to Pay2Chat</h2>
-      <p style="color:#bbb;">Create or join a Pay2Chat room to start a paid P2P call.</p>
-      <div style="margin-top:12px;">
+      <p>Create or join a Pay2Chat room to start a paid P2P call.</p>
+      <div class="button-group">
         <button id="landingCreateBtn">Create Room</button>
-        <button id="landingJoinBtn">Join Room</button>
+        <button id="landingJoinBtn" class="secondary">Join Room</button>
       </div>
-      <div style="margin-top:12px;color:#888;font-size:0.9rem;">You can connect your Phantom or Solflare wallet from the main page.</div>
+      <p style="margin-top: 24px; font-size: 12px; color: var(--text-muted);">You can connect your Phantom or Solflare wallet from the main page.</p>
     </div>
   </div>
   <div class="container">
-    <header style="display:flex;align-items:center;justify-content:space-between;width:100%;max-width:900px;">
-      <div style="display:flex;align-items:center;gap:12px;">
-        <div style="font-weight:bold;font-size:1.1rem;">Pay2Chat</div>
-        <nav style="font-size:0.9rem;color:#9aa;">
-          <a href="#home" onclick="event.preventDefault();" id="navHome" style="color:#9aa;margin-right:10px;">Home</a>
-          <a href="#create" onclick="event.preventDefault();" id="navCreate" style="color:#9aa;margin-right:10px;">Create</a>
-          <a href="#join" onclick="event.preventDefault();" id="navJoin" style="color:#9aa;margin-right:10px;">Join</a>
+    <header>
+      <div style="display: flex; align-items: center; gap: 24px;">
+        <div class="logo">Pay2Chat</div>
+        <nav>
+          <a href="#home" onclick="event.preventDefault();" id="navHome">Home</a>
+          <a href="#create" onclick="event.preventDefault();" id="navCreate">Create</a>
+          <a href="#join" onclick="event.preventDefault();" id="navJoin">Join</a>
         </nav>
       </div>
-      <div style="font-size:0.9rem;color:#9aa;">
-        <span id="solBadge">SOL: -</span>
-        <span style="margin-left:10px;" id="usdcBadge">USDC: -</span>
+      <div style="display: flex; gap: 12px; align-items: center;">
+        <span class="badge" id="solBadge">SOL: -</span>
+        <span class="badge" id="usdcBadge">USDC: -</span>
       </div>
     </header>
-    <h1 style="margin-top:14px;">Pay2Chat</h1>
   <!-- SOL top-up modal shown when wallet lacks SOL for fees -->
   <div id="solTopupModal">
     <div class="modal">
       <h3>Insufficient SOL for transaction fees</h3>
       <div class="muted">Your wallet needs a small amount of SOL to cover transaction fees and create token accounts. Please deposit SOL into your connected wallet and then re-check your balance.</div>
-      <div style="margin-top:10px;"><strong>Required minimum SOL:</strong> <span id="modalRequiredSol">0.0015</span> SOL</div>
-      <div style="margin-top:6px;"><strong>Your current SOL:</strong> <span id="modalCurrentSol">-</span> SOL</div>
-      <div style="margin-top:8px;"><strong>Your wallet address:</strong>
+      <div style="margin-top: 16px;">
+        <div style="margin-bottom: 8px;"><strong>Required minimum SOL:</strong> <span id="modalRequiredSol" style="font-family: 'JetBrains Mono', monospace;">0.0015</span> SOL</div>
+        <div><strong>Your current SOL:</strong> <span id="modalCurrentSol" style="font-family: 'JetBrains Mono', monospace;">-</span> SOL</div>
+      </div>
+      <div style="margin-top: 16px;">
+        <strong>Your wallet address:</strong>
         <div class="walletAddr" id="modalWalletAddr"></div>
       </div>
       <div class="actions">
+        <button id="modalCloseBtn" class="secondary">Close</button>
         <button id="modalRecheckBtn">Re-check balance</button>
-        <button id="modalCloseBtn">Close</button>
       </div>
     </div>
   </div>
-    <section id="homePage" style="width:100%;max-width:900px;margin:12px 0;">
-      <div style="display:flex;gap:12px;align-items:center;">
+    <section id="homePage" class="section-card">
+      <h2 style="margin-bottom: 16px;">Start a Session</h2>
+      <div style="display: flex; gap: 12px; margin-bottom: 16px;">
         <button id="homeCreateBtn">Create a Session</button>
-        <button id="homeJoinBtn">Join a Session</button>
+        <button id="homeJoinBtn" class="secondary">Join a Session</button>
       </div>
-      <p style="color:#bbb;margin-top:12px;">Platform: P2P video calls billed per-minute using Solana USDC. Hosts set rates; invitees prepay. Tips encouraged.</p>
+      <p>Platform: P2P video calls billed per-minute using Solana USDC. Hosts set rates; invitees prepay. Tips encouraged.</p>
     </section>
     <!-- Call page wrapper: hidden until navigating to 'call' -->
-    <div id="callPage" style="display:none; width:100%; max-width:900px;">
-      <div class="row">
+    <div id="callPage" style="display:none; width:100%;">
+      <div class="video-container">
         <video id="localVideo" autoplay playsinline muted></video>
         <video id="remoteVideo" autoplay playsinline></video>
       </div>
-      <div class="row">
+      <div style="margin-bottom: 16px; display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
         <button id="startBtn">Start Local Media</button>
         <button id="createOfferBtn" style="display:none;">Create Offer</button>
         <button id="createAnswerBtn" style="display:none;">Create Answer</button>
-        <button id="setRemoteBtn" style="display:none;">Set Remote SDP</button>
+        <button id="setRemoteBtn" style="display:none;" class="secondary">Set Remote SDP</button>
       </div>
-      <div class="row">
+      <div class="controls">
         <button id="muteBtn" disabled>Mute</button>
         <button id="cameraBtn" disabled>Camera Off</button>
-        <button id="endCallBtn" disabled>End Call</button>
-        <span id="connState" style="margin-left:16px;"></span>
+        <button id="endCallBtn" disabled class="danger">End Call</button>
+        <span id="connState"></span>
       </div>
     </div>
     <!-- SDP modal (copy/paste flow) -->
-    <div id="sdpModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); align-items:center; justify-content:center; z-index:60;">
-      <div style="background:#0b0f10;padding:16px;border-radius:8px;width:720px;">
-        <h3 style="margin-top:0;color:#fff;">Signaling (copy/paste)</h3>
-        <div style="display:flex;gap:8px;">
-          <div style="flex:1;">
-            <label style="font-size:0.85rem;color:#9aa;">Your SDP (copy and share with remote)</label>
-            <textarea id="localSDP" style="width:100%;height:160px;background:#071017;color:#ddd;"></textarea>
-            <div style="margin-top:6px;"><button id="copyLocalSdpBtn">Copy Local SDP</button></div>
+    <div id="sdpModal">
+      <div class="modal" style="max-width: 900px;">
+        <h3>Signaling (copy/paste)</h3>
+        <div style="display: flex; gap: 16px; margin-bottom: 16px;">
+          <div style="flex: 1;">
+            <label>Your SDP (copy and share with remote)</label>
+            <textarea id="localSDP" class="monospace" style="height: 200px; font-size: 12px; background: var(--background);"></textarea>
+            <div style="margin-top: 8px;">
+              <button id="copyLocalSdpBtn">Copy Local SDP</button>
+            </div>
           </div>
-          <div style="flex:1;">
-            <label style="font-size:0.85rem;color:#9aa;">Remote SDP (paste here and click Accept)</label>
-            <textarea id="remoteSDP" style="width:100%;height:160px;background:#071017;color:#ddd;"></textarea>
-            <div style="margin-top:6px;"><button id="acceptRemoteSdpBtn">Accept Remote SDP</button></div>
+          <div style="flex: 1;">
+            <label>Remote SDP (paste here and click Accept)</label>
+            <textarea id="remoteSDP" class="monospace" style="height: 200px; font-size: 12px; background: var(--background);"></textarea>
+            <div style="margin-top: 8px;">
+              <button id="acceptRemoteSdpBtn">Accept Remote SDP</button>
+            </div>
           </div>
         </div>
-        <div style="text-align:right;margin-top:10px;"><button id="closeSdpModal">Close</button></div>
+        <div class="actions">
+          <button id="closeSdpModal" class="secondary">Close</button>
+        </div>
       </div>
     </div>
     <div style="display:none;">
@@ -118,87 +538,162 @@
       <button id="sendDataBtn">Send DataChannel Msg</button>
       <div id="dataLog" style="margin-top:8px; min-height:24px;"></div>
     </div>
-    <div id="status" style="margin-top:16px;"></div>
-      <hr style="width:640px;margin:16px 0;border-color:#333;" />
-      <div style="width:640px; text-align:left;">
-        <h2>Stage 3: Wallet (Solana)</h2>
-        <div style="display:flex;gap:8px;align-items:center;">
-        <label for="clusterSelect">Cluster:</label>
-        <select id="clusterSelect">
-          <option value="mainnet">mainnet-beta</option>
-          <option value="devnet">devnet</option>
-        </select>
-        <!-- Custom RPC input hidden; RPC switching done behind the scenes -->
-        <label for="customRpc" style="margin-left:8px;display:none;">Custom RPC:</label>
-        <input id="customRpc" value="https://mainnet.helius-rpc.com/?api-key=87b803b7-48a2-446b-8661-233d33f9cc4d" placeholder="https://api.mainnet-beta.solana.com" style="width:300px;display:none;" />
-        <button id="connectPhantomBtn">Connect Phantom</button>
-        <button id="connectSolflareBtn">Connect Solflare</button>
-        <button id="connectWCBtn">Connect (WalletConnect)</button>
-        <button id="disconnectWalletBtn" style="margin-left:8px;display:none;">Disconnect</button>
-        <button id="copyAddressBtn" style="margin-left:8px;display:none;">Copy Address</button>
-        <span id="walletAddr"></span>
-      </div>
-        <div style="margin-top:8px;">
-          <strong>USDC Balance:</strong> <span id="usdcBalance">-</span>
-          <span id="walletError" style="color:#f66; margin-left:12px;"></span>
-          <div id="walletNotes" style="margin-top:6px;color:#ccc; font-size:0.9rem;">MetaMask/EVM wallets are not enabled. Use Phantom or Solflare for Solana USDC. To use WalletConnect for Solana, include a Solana WalletConnect adapter or wallet-adapter integration.</div>
-          <div style="margin-top:6px;color:#bbb;font-size:0.85rem;">Helius WebSocket: <code>wss://mainnet.helius-rpc.com/?api-key=87b803b7-48a2-446b-8661-233d33f9cc4d</code></div>
+    <div id="status" style="margin-top: 16px;"></div>
+    
+    <div class="section-card">
+      <h2>Stage 3: Wallet (Solana)</h2>
+      <div class="form-row" style="margin-top: 16px; flex-wrap: wrap;">
+        <div class="form-group" style="flex: 0 0 auto;">
+          <label for="clusterSelect">Cluster:</label>
+          <select id="clusterSelect" style="width: auto; min-width: 150px;">
+            <option value="mainnet">mainnet-beta</option>
+            <option value="devnet">devnet</option>
+          </select>
         </div>
-        <div style="margin-top:12px;">
-          <h3>Stage 4: USDC Transfer Engine (Test)</h3>
-          <div style="display:flex;gap:8px;align-items:center;">
-            <input id="txRecipient" placeholder="Recipient wallet address" style="flex:1;" />
-            <input id="txAmount" placeholder="Amount (USDC)" style="width:120px;" />
+        <div class="form-group" style="flex: 1; min-width: 200px;">
+          <label for="customRpc" style="display:none;">Custom RPC:</label>
+          <input id="customRpc" value="https://mainnet.helius-rpc.com/?api-key=87b803b7-48a2-446b-8661-233d33f9cc4d" placeholder="https://api.mainnet-beta.solana.com" style="display:none;" />
+        </div>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: flex-end;">
+          <button id="connectPhantomBtn">Connect Phantom</button>
+          <button id="connectSolflareBtn" class="secondary">Connect Solflare</button>
+          <button id="connectWCBtn" class="secondary">Connect (WalletConnect)</button>
+          <button id="disconnectWalletBtn" style="display:none;" class="secondary">Disconnect</button>
+          <button id="copyAddressBtn" style="display:none;" class="secondary">Copy Address</button>
+        </div>
+      </div>
+      <div style="margin-top: 8px;">
+        <span id="walletAddr" style="font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--text-muted);"></span>
+      </div>
+      <div style="margin-top: 16px;">
+        <div style="margin-bottom: 8px;">
+          <strong>USDC Balance:</strong> 
+          <span id="usdcBalance" style="font-family: 'JetBrains Mono', monospace; margin-left: 8px;">-</span>
+          <span id="walletError" style="color: var(--danger); margin-left: 12px;"></span>
+        </div>
+        <div id="walletNotes" class="info-card" style="margin-top: 12px; font-size: 13px;">MetaMask/EVM wallets are not enabled. Use Phantom or Solflare for Solana USDC. To use WalletConnect for Solana, include a Solana WalletConnect adapter or wallet-adapter integration.</div>
+        <div style="margin-top: 12px; font-size: 12px; color: var(--text-muted);">
+          Helius WebSocket: <code>wss://mainnet.helius-rpc.com/?api-key=87b803b7-48a2-446b-8661-233d33f9cc4d</code>
+        </div>
+      </div>
+      <hr />
+      <div style="margin-top: 24px;">
+        <h3>Stage 4: USDC Transfer Engine (Test)</h3>
+        <div class="form-row" style="margin-top: 16px;">
+          <div class="form-group">
+            <label for="txRecipient">Recipient wallet address</label>
+            <input id="txRecipient" placeholder="Recipient wallet address" class="monospace" />
+          </div>
+          <div class="form-group" style="flex: 0 0 150px;">
+            <label for="txAmount">Amount (USDC)</label>
+            <input id="txAmount" type="number" placeholder="Amount" class="monospace" />
+          </div>
+          <div style="display: flex; align-items: flex-end;">
             <button id="sendUsdcBtn">Send USDC (test)</button>
           </div>
-          <div id="txStatus" style="margin-top:8px;color:#8f8;"></div>
         </div>
-        <div style="margin-top:16px;">
-            <h3>Stage 5: Room & Prepay (Host / Invitee)</h3>
-            <div id="createPanel" style="display:none; margin-top:8px;">
-              <div style="display:flex;gap:8px;align-items:center;">
-                <label style="width:140px;">Host rate / min (USDC):</label>
-                <input id="hostPrice" placeholder="e.g. 1.00" style="width:120px;" />
-                <label style="margin-left:8px;font-size:0.85rem;color:#9aa;"><input type="checkbox" id="includeOfferCheckbox" /> Include Offer in Link (auto-join)</label>
-                <button id="createRoomBtn">Create Room (Host)</button>
-                <button id="createBeginBtn">Begin Session (Host)</button>
-                <span id="roomInfo" style="margin-left:12px;color:#9f9;"></span>
-                <button id="copyInviteBtn" style="margin-left:8px; display:none;">Copy Invite</button>
+        <div id="txStatus" style="margin-top: 12px; color: var(--secondary); font-size: 14px;"></div>
+      </div>
+      <hr />
+      <div style="margin-top: 24px;">
+        <h3>Stage 5: Room & Prepay (Host / Invitee)</h3>
+        <div id="createPanel" style="display:none; margin-top: 16px;">
+          <div style="display: flex; flex-direction: column; gap: 16px;">
+            <div class="form-row" style="flex-wrap: wrap;">
+              <div class="form-group" style="flex: 0 0 180px;">
+                <label for="hostPrice">Host rate / min (USDC)</label>
+                <input id="hostPrice" type="number" placeholder="e.g. 1.00" class="monospace" />
               </div>
-              <div style="margin-top:8px;">
-                <h4>Files for sale (Host)</h4>
-                <input id="fileNameInput" placeholder="Filename or description" style="width:320px;" />
-                <input id="filePriceInput" placeholder="Price (USDC)" style="width:120px;" />
-                <button id="addFileBtn">Add File for Sale</button>
-                <div id="fileList" style="margin-top:8px;color:#ccc;"></div>
+              <div class="form-group" style="flex: 0 0 200px;">
+                <label for="signalingUrl">Signaling URL</label>
+                <input id="signalingUrl" placeholder="ws://host:8888" class="monospace" value="ws://localhost:8888" />
+              </div>
+              <div class="form-group" style="flex: 0 0 140px;">
+                <label for="signalingRoom">Room Code</label>
+                <input id="signalingRoom" placeholder="ROOM123" class="monospace" style="text-transform: uppercase;" />
+              </div>
+              <div style="display: flex; align-items: flex-end; gap: 8px; flex-wrap: wrap;">
+                <button id="connectSignalingBtn" class="secondary">Connect Signaling</button>
+                <label style="display: flex; align-items: center; font-size: 13px; color: var(--text-muted); gap: 4px; padding: 8px;">
+                  <input type="checkbox" id="autoSendOffer" style="width: auto;" />
+                  Auto-send offer
+                </label>
+                <label style="display: flex; align-items: center; font-size: 13px; color: var(--text-muted); gap: 4px; padding: 8px;">
+                  <input type="checkbox" id="includeOfferCheckbox" style="width: auto;" />
+                  Include Offer in Link
+                </label>
               </div>
             </div>
-
-            <div id="joinPanel" style="display:none; margin-top:8px;">
-              <div style="display:flex;gap:8px;align-items:center;">
-                <label style="width:140px;">Join Room (paste invite link or code):</label>
-                <input id="inviteCodeInput" placeholder="Invite link or code" style="flex:1;" />
-                <button id="joinByCodeBtn">Join</button>
-                <button id="joinBeginBtn">Join Session</button>
+            <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+              <button id="createRoomBtn">Create Room (Host)</button>
+              <button id="createBeginBtn" class="secondary">Begin Session (Host)</button>
+              <span id="roomInfo" style="color: var(--secondary); font-size: 14px;"></span>
+              <button id="copyInviteBtn" style="display:none;" class="secondary">Copy Invite</button>
+            </div>
+          </div>
+          <div style="margin-top: 24px;">
+            <h4>Files for sale (Host)</h4>
+            <div class="form-row" style="margin-top: 12px;">
+              <div class="form-group">
+                <label for="fileNameInput">Filename or description</label>
+                <input id="fileNameInput" placeholder="Filename or description" />
               </div>
-              <div style="display:flex;gap:8px;align-items:center;margin-top:8px;">
-                <label style="width:140px;">Host address (parsed):</label>
-                <input id="joinHostAddr" placeholder="Host wallet address" style="flex:1;" />
-                <input id="joinPrice" placeholder="Price/min" style="width:120px;" />
+              <div class="form-group" style="flex: 0 0 150px;">
+                <label for="filePriceInput">Price (USDC)</label>
+                <input id="filePriceInput" type="number" placeholder="Price" class="monospace" />
+              </div>
+              <div style="display: flex; align-items: flex-end;">
+                <button id="addFileBtn">Add File for Sale</button>
+              </div>
+            </div>
+            <div id="fileList" style="margin-top: 12px; color: var(--text-muted); font-size: 14px;"></div>
+          </div>
+        </div>
+
+        <div id="joinPanel" style="display:none; margin-top: 16px;">
+          <div style="display: flex; flex-direction: column; gap: 16px;">
+            <div class="form-row">
+              <div class="form-group">
+                <label for="inviteCodeInput">Join Room (paste invite link or code)</label>
+                <input id="inviteCodeInput" placeholder="Invite link or code" class="monospace" />
+              </div>
+              <div style="display: flex; align-items: flex-end; gap: 8px;">
+                <button id="joinByCodeBtn">Join</button>
+                <button id="joinBeginBtn" class="secondary">Join Session</button>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="joinHostAddr">Host address (parsed)</label>
+                <input id="joinHostAddr" placeholder="Host wallet address" class="monospace" />
+              </div>
+              <div class="form-group" style="flex: 0 0 150px;">
+                <label for="joinPrice">Price/min</label>
+                <input id="joinPrice" type="number" placeholder="Price/min" class="monospace" />
+              </div>
+              <div style="display: flex; align-items: flex-end;">
                 <button id="prepayBtn">Prepay 3 minutes</button>
               </div>
-              <div id="prepayStatus" style="margin-top:8px;color:#8f8;"></div>
-              <div style="margin-top:6px;color:#bdb;padding:8px;background:#071017;border-radius:6px;">Fees: invitee will prepay the initial N minutes (3 by default). Tips are encouraged — you can tip during or after the call.</div>
-              <div style="margin-top:8px;">
-                <strong>Tip during/after call:</strong>
-                <input id="tipAmount" placeholder="Amount (USDC)" style="width:120px; margin-left:8px;" />
-                <button id="tipBtn">Send Tip</button>
-                <div id="tipStatus" style="margin-top:6px;color:#cfc;"></div>
-              </div>
             </div>
-            <div id="homeNotice" style="margin-top:8px;color:#ccc;">Use Create Room to set price and generate invite link; use Join Room to paste invite link/code to join.</div>
+            <div id="prepayStatus" style="color: var(--secondary); font-size: 14px;"></div>
+            <div class="info-card success" style="margin-top: 12px; font-size: 13px;">Fees: invitee will prepay the initial N minutes (3 by default). Tips are encouraged — you can tip during or after the call.</div>
+            <div style="margin-top: 16px;">
+              <div class="form-row">
+                <div class="form-group" style="flex: 0 0 150px;">
+                  <label for="tipAmount">Tip amount (USDC)</label>
+                  <input id="tipAmount" type="number" placeholder="Amount" class="monospace" />
+                </div>
+                <div style="display: flex; align-items: flex-end;">
+                  <button id="tipBtn">Send Tip</button>
+                </div>
+              </div>
+              <div id="tipStatus" style="margin-top: 8px; color: var(--secondary); font-size: 14px;"></div>
+            </div>
           </div>
+        </div>
+        <div id="homeNotice" style="margin-top: 16px; color: var(--text-muted); font-size: 13px;">Use Create Room to set price and generate invite link; use Join Room to paste invite link/code to join.</div>
       </div>
+    </div>
   </div>
   <script src="https://unpkg.com/@solana/web3.js@1.73.0/lib/index.iife.min.js"></script>
   <script src="https://unpkg.com/@solana/spl-token@0.3.7/lib/index.iife.min.js"></script>

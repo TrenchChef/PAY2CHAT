@@ -1,0 +1,11 @@
+{
+  "name": "pay2chat",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "start": "node server.js",
+    "serve": "python3 -m http.server 8080",
+    "dev": "node scripts/start-dev.js",
+    "stop-serve": "echo 'Stop the python server with ctrl-c or kill the process'"
+  }
+}
