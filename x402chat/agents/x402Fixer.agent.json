@@ -1,0 +1,56 @@
+{
+  "name": "x402Fixer",
+  "description": "Fix dependencies, imports, versions, TypeScript config, folder structure, and rebuild a working x402chat codebase.",
+  "includes": [
+    "**/*"
+  ],
+  "steps": [
+    {
+      "goal": "Repair dependency graph",
+      "instructions": [
+        "Install missing dependencies.",
+        "Remove unused deps.",
+        "Fix version mismatches.",
+        "Rebuild lockfile."
+      ]
+    },
+    {
+      "goal": "Fix imports",
+      "instructions": [
+        "Repair broken import paths.",
+        "Normalize import style.",
+        "Remove duplicates."
+      ]
+    },
+    {
+      "goal": "Fix TypeScript configuration",
+      "instructions": [
+        "Repair tsconfig.json.",
+        "Enable strict mode.",
+        "Add missing typings."
+      ]
+    },
+    {
+      "goal": "Clean architecture",
+      "instructions": [
+        "Restore folder hierarchy.",
+        "Move misplaced Copilot-created files.",
+        "Delete junk."
+      ]
+    },
+    {
+      "goal": "Build recovery",
+      "instructions": [
+        "Run type-check.",
+        "Run build.",
+        "Fix build errors."
+      ]
+    },
+    {
+      "goal": "Output summary",
+      "instructions": [
+        "List fixes applied."
+      ]
+    }
+  ]
+}

@@ -1,0 +1,50 @@
+{
+  "name": "x402MetaRunner",
+  "description": "Automatically executes all x402 agents in sequence: TechAudit \u2192 Fixer \u2192 SecScan \u2192 Refactorer \u2192 Finisher.",
+  "includes": [
+    "**/*"
+  ],
+  "steps": [
+    {
+      "goal": "Run TechAudit",
+      "instructions": [
+        "Execute full audit.",
+        "Store results as TECH_AUDIT_REPORT."
+      ]
+    },
+    {
+      "goal": "Run Fixer",
+      "instructions": [
+        "Use TECH_AUDIT_REPORT.",
+        "Store FIX_REPORT."
+      ]
+    },
+    {
+      "goal": "Run SecScan",
+      "instructions": [
+        "Use FIX_REPORT.",
+        "Store SEC_REPORT."
+      ]
+    },
+    {
+      "goal": "Run Refactorer",
+      "instructions": [
+        "Use FIX_REPORT and SEC_REPORT.",
+        "Store REFACTOR_REPORT."
+      ]
+    },
+    {
+      "goal": "Run Finisher",
+      "instructions": [
+        "Use REFACTOR_REPORT.",
+        "Store FINISHED."
+      ]
+    },
+    {
+      "goal": "Output final summary",
+      "instructions": [
+        "Combine all reports into a final readiness document."
+      ]
+    }
+  ]
+}

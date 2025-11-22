@@ -1,0 +1,19 @@
+{
+  "rules": [
+    {
+      "pattern": "**/*",
+      "agents": [
+        "x402MetaRunner",
+        "x402Rollback",
+        "x402ProgressReporter",
+        "x402AgentLogDashboard",
+        "x402TechAudit",
+        "x402Fixer",
+        "x402SecScan",
+        "x402Refactorer",
+        "x402Finisher"
+      ],
+      "priority": "high"
+    }
+  ]
+}

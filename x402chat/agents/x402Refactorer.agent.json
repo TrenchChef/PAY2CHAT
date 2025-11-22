@@ -1,0 +1,60 @@
+{
+  "name": "x402Refactorer",
+  "description": "Full automated refactor. Clean structure, rewrite corrupted logic, normalize types and components.",
+  "includes": [
+    "**/*"
+  ],
+  "steps": [
+    {
+      "goal": "Standardize architecture",
+      "instructions": [
+        "Enforce lib/solana, lib/webrtc, lib/wallet structure.",
+        "Remove duplication."
+      ]
+    },
+    {
+      "goal": "Refactor code style",
+      "instructions": [
+        "Normalize functions.",
+        "Fix inconsistent React patterns.",
+        "Remove dead code."
+      ]
+    },
+    {
+      "goal": "Rewrite broken logic",
+      "instructions": [
+        "Replace corrupted modules.",
+        "Rebuild wallet/RPC/WebRTC flows."
+      ]
+    },
+    {
+      "goal": "Ensure TS integrity",
+      "instructions": [
+        "Add missing global types.",
+        "Fix implicit anys.",
+        "Normalize exports."
+      ]
+    },
+    {
+      "goal": "UI cleanup",
+      "instructions": [
+        "Rename components.",
+        "Split up huge files.",
+        "Add documentation."
+      ]
+    },
+    {
+      "goal": "Performance improvements",
+      "instructions": [
+        "Memoize expensive operations.",
+        "Reduce unnecessary renders."
+      ]
+    },
+    {
+      "goal": "Output summary",
+      "instructions": [
+        "List refactor operations."
+      ]
+    }
+  ]
+}

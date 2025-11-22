@@ -1,0 +1,33 @@
+{
+  "name": "x402AgentLogDashboard",
+  "description": "Creates and maintains a simple on-disk dashboard that aggregates agent outputs and key metrics into logs/AGENT_DASHBOARD.md.",
+  "includes": [
+    "**/*"
+  ],
+  "steps": [
+    {
+      "goal": "Create logging directories and dashboard file.",
+      "instructions": [
+        "Ensure directories exist: logs/agents/, logs/snapshots/.",
+        "Create logs/AGENT_DASHBOARD.md if missing.",
+        "Add sections: Latest Run, Agent Outputs Index, Errors, Warnings, Files Changed, Next Steps."
+      ]
+    },
+    {
+      "goal": "Aggregate outputs from all x402 agents.",
+      "instructions": [
+        "After any agent run, append its summary to logs/agents/<agentName>_<timestamp>.md.",
+        "Update logs/AGENT_DASHBOARD.md with links/paths to latest summaries.",
+        "Track counts: deps fixed, files refactored, secrets found, build status."
+      ]
+    },
+    {
+      "goal": "Provide quick navigation.",
+      "instructions": [
+        "Add a table of contents to AGENT_DASHBOARD.md.",
+        "Maintain a rolling window of last 10 runs.",
+        "Do not delete older logs; only rotate the dashboard index."
+      ]
+    }
+  ]
+}

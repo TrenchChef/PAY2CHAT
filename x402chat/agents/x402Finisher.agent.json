@@ -1,0 +1,37 @@
+{
+  "name": "x402Finisher",
+  "description": "Final integration + build validator for wallet, RPC, ATA, micropayments, WebRTC.",
+  "includes": [
+    "**/*"
+  ],
+  "steps": [
+    {
+      "goal": "Validate all modules work together",
+      "instructions": [
+        "Test wallet \u2192 RPC \u2192 ATA \u2192 micropayments \u2192 WebRTC path.",
+        "Fix failures."
+      ]
+    },
+    {
+      "goal": "Final build check",
+      "instructions": [
+        "Run dev build and prod build.",
+        "Ensure no warnings or errors."
+      ]
+    },
+    {
+      "goal": "Finalize structure",
+      "instructions": [
+        "Remove leftover junk.",
+        "Ensure naming consistency.",
+        "Sync .env.example."
+      ]
+    },
+    {
+      "goal": "Generate readiness report",
+      "instructions": [
+        "Summarize final state."
+      ]
+    }
+  ]
+}
