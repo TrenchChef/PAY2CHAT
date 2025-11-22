@@ -117,18 +117,25 @@ function createPeerConnection() {
         }
       }
       // Stage 6: Start automatic billing when connection is established
-      setTimeout(() => startBilling(), 1000); // Small delay to ensure everything is ready
+      // Stage 7: Start timer when connection is established
+      setTimeout(() => {
+        startBilling();
+        startTimer(); // Start timer alongside billing
+      }, 1000); // Small delay to ensure everything is ready
     }
     if (pc.connectionState === 'disconnected' || pc.connectionState === 'closed' || pc.connectionState === 'failed') {
       endCallBtn.disabled = true;
       muteBtn.disabled = true;
       cameraBtn.disabled = true;
       // Stage 6: Stop billing when connection closes
+      // Stage 7: Stop timer when connection closes
       stopBilling();
+      stopTimer();
     }
     if (pc.connectionState === 'closed') {
       resetUI();
       stopBilling();
+      stopTimer();
     }
     if (pc.connectionState === 'failed' && reconnectAttempts < MAX_RECONNECTS) {
       reconnectAttempts++;
@@ -274,7 +281,9 @@ cameraBtn.onclick = () => {
 endCallBtn.onclick = () => {
   if (pc) {
     // Stage 6: Stop billing when call ends
+    // Stage 7: Stop timer when call ends
     stopBilling();
+    stopTimer();
     pc.close();
     updateConnState('closed');
     logStatus('Call ended.');
@@ -1757,6 +1766,9 @@ async function sendMinuteBilling() {
     billingRetryAttempted = false; // Reset retry flag on success
     updateBillingStatusUI('paid', `✓ Minute paid (${totalPaid.toFixed(2)} USDC total)`);
     
+    // Stage 7: Sync timer with successful billing
+    syncTimerWithBilling();
+    
     // Send success event over DataChannel
     if (dataChannel && dataChannel.readyState === 'open') {
       try {
@@ -1793,6 +1805,14 @@ async function sendMinuteBilling() {
     
     // Freeze video immediately
     freezeVideo();
+    
+    // Stage 7: Update timer to show failure state
+    if (timerStartTime) {
+      const now = performance.now();
+      const elapsedMs = now - timerStartTime;
+      const elapsedSeconds = Math.floor(elapsedMs / 1000);
+      updateTimerUI(elapsedSeconds, null, 'failed');
+    }
     
     // Retry logic: single retry attempt
     if (!billingRetryAttempted) {
@@ -1863,5 +1883,139 @@ function stopBilling() {
     billingStatusElement.style.display = 'none';
   }
   billingStatus = null;
+  // Stage 7: Stop timer when billing stops
+  stopTimer();
   logStatus('X402 automatic billing stopped');
+}
+
+// --- Stage 7: Timer / Timekeeping System ---
+let timerInterval = null;
+let timerStartTime = null; // Monotonic time (performance.now())
+let nextBillingTime = null; // When next billing should occur (60s intervals)
+let timerElement = null;
+let lastBillingTimestamp = null; // Track when last successful billing occurred
+
+// Format time as mm:ss
+function formatTime(seconds) {
+  const mins = Math.floor(seconds / 60);
+  const secs = Math.floor(seconds % 60);
+  return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+}
+
+// Initialize timer UI element
+function initTimerUI() {
+  if (!timerElement) {
+    const callPage = document.getElementById('callPage');
+    if (callPage) {
+      timerElement = document.createElement('div');
+      timerElement.id = 'callTimer';
+      timerElement.style.cssText = 'position: fixed; top: 16px; left: 16px; background: var(--surface); padding: 16px 20px; border-radius: 8px; font-family: JetBrains Mono, monospace; font-size: 20px; font-weight: 600; z-index: 100; border: 1px solid var(--border); display: none; min-width: 200px;';
+      document.body.appendChild(timerElement);
+    }
+  }
+}
+
+function updateTimerUI(elapsedSeconds, countdownSeconds, status) {
+  if (!timerElement) initTimerUI();
+  if (!timerElement) return;
+  
+  // Color states: green (paid), yellow (<10s), red (failure/frozen)
+  let color = 'var(--secondary)'; // green (paid)
+  if (status === 'failed' || status === 'frozen') {
+    color = 'var(--danger)'; // red
+  } else if (countdownSeconds !== null && countdownSeconds <= 10) {
+    color = 'var(--accent)'; // yellow (warning)
+  }
+  
+  const elapsedStr = formatTime(elapsedSeconds);
+  const countdownStr = countdownSeconds !== null ? formatTime(countdownSeconds) : '--:--';
+  
+  // Build timer HTML with color coding
+  let timerHTML = `<div style="margin-bottom: 8px; color: var(--text);">Call: ${elapsedStr}</div>`;
+  timerHTML += `<div style="font-size: 16px; color: ${color}; border-top: 1px solid var(--border); padding-top: 8px; margin-top: 8px;">Next: ${countdownStr}</div>`;
+  
+  timerElement.innerHTML = timerHTML;
+  timerElement.style.borderColor = color;
+  timerElement.style.display = 'block';
+  
+  // Add pulsing animation for critical warnings (<10s and not failed)
+  if (countdownSeconds !== null && countdownSeconds <= 10 && status !== 'failed' && status !== 'frozen') {
+    timerElement.style.animation = 'pulse 1s infinite';
+  } else {
+    timerElement.style.animation = 'none';
+  }
+}
+
+function startTimer() {
+  if (timerInterval) {
+    clearInterval(timerInterval);
+    timerInterval = null;
+  }
+  
+  // Use monotonic time for accuracy (performance.now() doesn't drift with tab focus)
+  timerStartTime = performance.now();
+  nextBillingTime = timerStartTime + 60000; // First billing in 60 seconds
+  lastBillingTimestamp = timerStartTime;
+  
+  // Initialize timer UI
+  initTimerUI();
+  updateTimerUI(0, 60, billingStatus || 'paid');
+  
+  // Update timer every second
+  timerInterval = setInterval(() => {
+    if (!timerStartTime) return;
+    
+    // Calculate elapsed time using monotonic time
+    const now = performance.now();
+    const elapsedMs = now - timerStartTime;
+    const elapsedSeconds = Math.floor(elapsedMs / 1000);
+    
+    // Calculate countdown to next billing
+    let countdownSeconds = null;
+    if (nextBillingTime) {
+      const countdownMs = nextBillingTime - now;
+      countdownSeconds = Math.max(0, Math.floor(countdownMs / 1000));
+      
+      // If countdown reached 0, it means billing should have occurred
+      // Reset for next 60-second cycle
+      if (countdownSeconds === 0 && billingStatus === 'paid') {
+        nextBillingTime = now + 60000; // Next billing in 60 seconds
+        countdownSeconds = 60;
+      }
+    }
+    
+    // Update UI with current status
+    updateTimerUI(elapsedSeconds, countdownSeconds, billingStatus || 'paid');
+  }, 1000); // Update every second
+  
+  logStatus('Call timer started');
+}
+
+function stopTimer() {
+  if (timerInterval) {
+    clearInterval(timerInterval);
+    timerInterval = null;
+  }
+  if (timerElement) {
+    timerElement.style.display = 'none';
+  }
+  timerStartTime = null;
+  nextBillingTime = null;
+  lastBillingTimestamp = null;
+  logStatus('Call timer stopped');
+}
+
+// Sync timer with billing events
+function syncTimerWithBilling() {
+  if (!timerStartTime || !nextBillingTime) return;
+  
+  // When billing succeeds, reset countdown for next 60-second cycle
+  const now = performance.now();
+  nextBillingTime = now + 60000; // Next billing in exactly 60 seconds
+  lastBillingTimestamp = now;
+  
+  // Update UI immediately
+  const elapsedMs = now - timerStartTime;
+  const elapsedSeconds = Math.floor(elapsedMs / 1000);
+  updateTimerUI(elapsedSeconds, 60, billingStatus || 'paid');
 }
