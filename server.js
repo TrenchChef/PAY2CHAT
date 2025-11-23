@@ -7,12 +7,9 @@ try { require('dotenv').config(); } catch (e) { /* dotenv not installed; ok */ }
 
 const WebSocket = require('ws');
 const PORT = process.env.PORT || 8888;
+// METERED_API_KEY is optional and not currently used
+// Reserved for future URL shortener integration if needed
 const METERED_API_KEY = process.env.METERED_API_KEY || null;
-if (METERED_API_KEY) {
-  console.info('METERED_API_KEY detected (not logged for security).');
-} else {
-  console.info('No METERED_API_KEY found. Certain features (shortener integration) will be disabled.');
-}
 
 const wss = new WebSocket.Server({ port: PORT });
 
