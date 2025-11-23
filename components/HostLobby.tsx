@@ -19,9 +19,18 @@ export function HostLobby() {
       return;
     }
 
-    // Generate shareable URL with encoded room data for cross-device support
-    const shareable = encodeRoomToUrl(currentRoom);
-    setShareableUrl(shareable);
+    // Only generate shareable URL in browser (safety check)
+    if (typeof window !== 'undefined') {
+      try {
+        // Generate shareable URL with encoded room data for cross-device support
+        const shareable = encodeRoomToUrl(currentRoom);
+        setShareableUrl(shareable);
+      } catch (error) {
+        console.error('Failed to generate shareable URL:', error);
+        // Fallback to standard URL
+        setShareableUrl(currentRoom.url);
+      }
+    }
 
     // Listen for invitee joining (in production, this would be via WebSocket or polling)
     // For now, we'll navigate to call when user clicks "Start Call" or auto-navigate after delay

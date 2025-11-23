@@ -1,7 +1,5 @@
-// Required for static export with dynamic routes
-export function generateStaticParams() {
-  return []; // Empty array means routes will be handled client-side
-}
+// Force dynamic rendering to prevent server-side rendering issues
+export const dynamic = 'force-dynamic';
 
 export default function RoomLayout({
   children,
