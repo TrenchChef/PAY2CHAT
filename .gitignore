@@ -16,3 +16,12 @@ npm-debug.log
 # TypeScript
 *.tsbuildinfo
 next-env.d.ts
+.vercel
+
+# Railway deployment files (contain secrets)
+.env.railway.*
+.railway-setup.md
+
+# Temporary files
+*.tmp
+*.backup

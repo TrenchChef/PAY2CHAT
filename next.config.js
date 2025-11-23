@@ -1,9 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: 'export',
-  distDir: 'out',
+  // Removed output: 'export' for Vercel deployment (allows API routes and dynamic rendering)
   images: {
-    unoptimized: true,
+    unoptimized: true, // Can remove this if you want Vercel image optimization
   },
   reactStrictMode: true,
   webpack: (config) => {

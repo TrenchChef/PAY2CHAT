@@ -1,11 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ConnectWalletButton } from '@/components/ConnectWalletButton';
 import { JoinRoomForm } from '@/components/JoinRoomForm';
 
-export default function JoinPage() {
+function JoinPageContent() {
   const searchParams = useSearchParams();
   const roomId = searchParams.get('room');
   const code = searchParams.get('code');
@@ -28,6 +28,14 @@ export default function JoinPage() {
         <JoinRoomForm initialRoomId={roomId || undefined} initialCode={code || undefined} />
       </main>
     </div>
+  );
+}
+
+export default function JoinPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-background flex items-center justify-center">Loading...</div>}>
+      <JoinPageContent />
+    </Suspense>
   );
 }
 

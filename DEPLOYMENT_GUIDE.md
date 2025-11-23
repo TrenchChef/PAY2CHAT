@@ -507,3 +507,4 @@ METERED_API_KEY=your_key (optional)
    - Set up database connection pooling
    - Consider read replicas for heavy read workloads
    - Implement caching layer (Redis) if needed
+

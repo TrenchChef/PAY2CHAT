@@ -1,65 +1,39 @@
-# Deployment Status - PAY2CHAT
+# Deployment Status
 
-**Last Updated**: $(date)
+**Current Phase**: Phase 2 - Vercel Frontend Setup
+**Current Step**: Step 2.5 - Link Vercel Project
 
-## 🔍 Current Status
+## ✅ Phase 1 Complete - Railway Backend
+- [x] Railway CLI installed and logged in
+- [x] Project "pay2chat" created
+- [x] PostgreSQL database active with all 6 tables
+- [x] Signaling server deployed: wss://pay2chat-production.up.railway.app
+- [x] Database schema created successfully
 
-### Local Repository
-- **Branch**: `gh-pages`
-- **Latest Commit**: `d3f237a` - "Apply modern design system based on design guidelines"
-- **Status**: Ahead of origin/gh-pages by 1 commit
+## ✅ Phase 2 Progress
+- [x] Vercel CLI installed (v48.10.3)
+- [x] Vercel login completed (trenchchef-2092)
+- [x] Next.js config updated (removed static export)
+- [x] Checked existing projects: None found (will create new)
 
-### Remote Repository (GitHub)
-- **Remote URL**: https://github.com/TrenchChef/PAY2CHAT.git
-- **Branch**: `gh-pages`
-- **Latest Commit**: `d3f237a` - "Apply modern design system based on design guidelines"
-- **Status**: **UP TO DATE** ✅ (Pushed successfully)
+## ⏸️ Current Step: Create New Vercel Project
 
-### GitHub Pages Deployment
-- **Expected URL**: https://trenchchef.github.io/PAY2CHAT/
-- **Deployment Status**: **DEPLOYING** ⏳ (GitHub Pages rebuilds within 1-5 minutes after push)
-- **Branch Used**: `gh-pages`
-- **Last Push**: Just pushed commit `d3f237a`
+**No existing projects found - you'll create a new one.**
 
-## 📊 Commit Comparison
+**When running `vercel link` from the project directory, answer:**
 
-### Commits on Remote (origin/gh-pages):
-1. `b4182b1` - chore: call-only build (payments disabled) + signaling helper
-2. `17b6e55` - feat: Stage5 UI (create/join), tip/file placeholders; robust fallback RPC on errors; multi-wallet UI updates
+1. **Set up this directory?** → `yes`
+2. **Which scope?** → Select "Trench Chef's projects" (or "trench-chefs-projects")
+3. **Link to existing project?** → `no` (create new project)
+4. **What's your project's name?** → `pay2chat`
+5. **In which directory is your code located?** → `./` (current directory)
 
-### Status: ✅ PUSHED SUCCESSFULLY
-- Commit `d3f237a` has been pushed to `origin/gh-pages`
-- GitHub Pages is rebuilding with the latest version
+**After the project is created and linked, confirm here and I'll:**
+- Set all environment variables automatically
+- Deploy to Vercel
+- Get the deployment URL
 
-## ✅ Deployment Complete
-
-**Status**: Latest commit has been pushed to GitHub Pages branch.
-
-**Next Steps**:
-1. Wait 1-5 minutes for GitHub Pages to rebuild
-2. Visit https://trenchchef.github.io/PAY2CHAT/ to verify deployment
-3. Check deployment status at: https://github.com/TrenchChef/PAY2CHAT/actions
-
-## ✅ Verification Steps
-
-1. **Check GitHub Pages settings** (via GitHub web UI):
-   - Go to: https://github.com/TrenchChef/PAY2CHAT/settings/pages
-   - Verify: Source = "Deploy from a branch"
-   - Verify: Branch = "gh-pages" / "/ (root)"
-
-2. **Test deployment after push**:
-   - Visit: https://trenchchef.github.io/PAY2CHAT/
-   - Verify modern design system is visible
-   - Check browser console for errors
-
-3. **Verify commit is deployed**:
-   - Open https://trenchchef.github.io/PAY2CHAT/
-   - View page source or inspect elements
-   - Check for modern design system styles (Inter font, design tokens)
-
-## 📝 Notes
-
-- GitHub Pages typically deploys within 1-5 minutes after a push
-- You can check deployment status at: https://github.com/TrenchChef/PAY2CHAT/actions
-- If using a custom domain, DNS propagation may take additional time
-
+## Environment Variables Ready to Set:
+- DATABASE_URL: (Railway PostgreSQL - server-only)
+- NEXT_PUBLIC_SIGNALING_URL: wss://pay2chat-production.up.railway.app
+- NEXT_PUBLIC_SOLANA_RPC_URL: https://api.mainnet-beta.solana.com
