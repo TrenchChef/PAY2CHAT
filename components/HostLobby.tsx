@@ -4,15 +4,14 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useRoomStore } from '@/lib/store/useRoomStore';
 import { Spinner } from './Spinner';
-import { encodeRoomToUrl, generateQRCodeUrl } from '@/lib/utils/roomSharing';
+import { encodeRoomToUrl } from '@/lib/utils/roomSharing';
 
 export function HostLobby() {
   const router = useRouter();
   const { currentRoom, updateRoomConfig } = useRoomStore();
-  const [copied, setCopied] = useState<'url' | 'code' | 'shareable' | null>(null);
+  const [copied, setCopied] = useState<'code' | 'shareable' | null>(null);
   const [startingCall, setStartingCall] = useState(false);
   const [shareableUrl, setShareableUrl] = useState<string>('');
-  const [qrCodeUrl, setQrCodeUrl] = useState<string>('');
 
   useEffect(() => {
     if (!currentRoom) {
@@ -23,7 +22,6 @@ export function HostLobby() {
     // Generate shareable URL with encoded room data for cross-device support
     const shareable = encodeRoomToUrl(currentRoom);
     setShareableUrl(shareable);
-    setQrCodeUrl(generateQRCodeUrl(shareable));
 
     // Listen for invitee joining (in production, this would be via WebSocket or polling)
     // For now, we'll navigate to call when user clicks "Start Call" or auto-navigate after delay
@@ -31,7 +29,7 @@ export function HostLobby() {
 
   if (!currentRoom) return null;
 
-  const copyToClipboard = async (text: string, type: 'url' | 'code' | 'shareable') => {
+  const copyToClipboard = async (text: string, type: 'code' | 'shareable') => {
     try {
       await navigator.clipboard.writeText(text);
       setCopied(type);
@@ -53,11 +51,11 @@ export function HostLobby() {
 
       <div className="bg-surface rounded-lg p-6 border border-border space-y-6">
         <div>
-          <h2 className="text-xl font-bold mb-2">Shareable Room URL (Cross-Device)</h2>
+          <h2 className="text-xl font-bold mb-2">Shareable Room URL</h2>
           <p className="text-sm text-text-muted mb-2">
             Share this URL to join from any device. Works across mobile and desktop.
           </p>
-          <div className="flex gap-2 mb-4">
+          <div className="flex gap-2">
             <input
               type="text"
               value={shareableUrl}
@@ -69,36 +67,6 @@ export function HostLobby() {
               className="px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-lg font-medium transition-colors"
             >
               {copied === 'shareable' ? 'Copied!' : 'Copy'}
-            </button>
-          </div>
-          
-          {/* QR Code */}
-          {qrCodeUrl && (
-            <div className="mt-4 p-4 bg-background rounded-lg border border-border text-center">
-              <p className="text-sm text-text-muted mb-2">Scan QR Code to Join</p>
-              <img 
-                src={qrCodeUrl} 
-                alt="Room QR Code" 
-                className="mx-auto max-w-[200px]"
-              />
-            </div>
-          )}
-        </div>
-
-        <div>
-          <h2 className="text-xl font-bold mb-2">Standard Room URL</h2>
-          <div className="flex gap-2">
-            <input
-              type="text"
-              value={currentRoom.url}
-              readOnly
-              className="flex-1 px-4 py-2 bg-background border border-border rounded-lg text-text font-mono text-sm"
-            />
-            <button
-              onClick={() => copyToClipboard(currentRoom.url, 'url')}
-              className="px-4 py-2 bg-surface-light hover:bg-surface-light/80 text-text rounded-lg font-medium transition-colors"
-            >
-              {copied === 'url' ? 'Copied!' : 'Copy'}
             </button>
           </div>
         </div>
