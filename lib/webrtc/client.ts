@@ -6,15 +6,37 @@ interface WebRTCClientConfig {
   isHost: boolean;
 }
 
+export type BillingMessageType = 
+  | 'billing_attempt'
+  | 'billing_success'
+  | 'billing_failed'
+  | 'billing_frozen'
+  | 'billing_unfrozen';
+
+export interface BillingMessage {
+  type: BillingMessageType;
+  amount?: number;
+  txid?: string;
+  timestamp?: number;
+  totalPaid?: number;
+  code?: string;
+  message?: string;
+}
+
 export class WebRTCClient {
   private pc: RTCPeerConnection | null = null;
   private dataChannel: RTCDataChannel | null = null;
   private localStream: MediaStream | null = null;
   private config: WebRTCClientConfig;
   private signalingWs: WebSocket | null = null;
+  private onBillingMessage?: (message: BillingMessage) => void;
 
   constructor(config: WebRTCClientConfig) {
     this.config = config;
+  }
+
+  setBillingMessageHandler(handler: (message: BillingMessage) => void) {
+    this.onBillingMessage = handler;
   }
 
   async initialize() {
@@ -116,8 +138,15 @@ export class WebRTCClient {
   private handleDataChannelMessage(message: any) {
     // Handle billing, tips, file purchases, etc.
     switch (message.type) {
-      case 'billing':
-        // Handle billing updates
+      case 'billing_attempt':
+      case 'billing_success':
+      case 'billing_failed':
+      case 'billing_frozen':
+      case 'billing_unfrozen':
+        // Forward billing messages to handler
+        if (this.onBillingMessage) {
+          this.onBillingMessage(message as BillingMessage);
+        }
         break;
       case 'tip':
         // Handle tip notifications
@@ -127,6 +156,16 @@ export class WebRTCClient {
         break;
       default:
         console.log('Unknown message type:', message.type);
+    }
+  }
+
+  sendBillingMessage(message: BillingMessage) {
+    if (this.dataChannel && this.dataChannel.readyState === 'open') {
+      try {
+        this.dataChannel.send(JSON.stringify(message));
+      } catch (err) {
+        console.error('Failed to send billing message:', err);
+      }
     }
   }
 

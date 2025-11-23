@@ -8,6 +8,8 @@ import { TipModal } from './TipModal';
 import { FilePurchaseModal } from './FilePurchaseModal';
 import { Spinner } from './Spinner';
 import { formatTime } from '@/lib/utils/time';
+import { useBilling } from '@/lib/hooks/useBilling';
+import { useWallet } from '@solana/wallet-adapter-react';
 
 export function CallUI() {
   const router = useRouter();
@@ -18,6 +20,8 @@ export function CallUI() {
     connectionState,
     elapsedTime,
     nextPaymentCountdown,
+    billingStatus,
+    totalPaid,
     setLocalStream,
     setRemoteStream,
     setConnectionState,
@@ -25,13 +29,22 @@ export function CallUI() {
     endCall,
   } = useCallStore();
 
+  const { publicKey } = useWallet();
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
+  const webrtcClientRef = useRef<any>(null);
+  const callStartTimeRef = useRef<number | null>(null);
   const [showTipModal, setShowTipModal] = useState(false);
   const [showFileModal, setShowFileModal] = useState(false);
   const [audioMuted, setAudioMuted] = useState(false);
   const [videoOff, setVideoOff] = useState(false);
   const [endingCall, setEndingCall] = useState(false);
+
+  // Initialize billing (only for invitee)
+  useBilling({
+    webrtcClient: webrtcClientRef.current,
+    enabled: !isHost && !!publicKey && connectionState === 'connected',
+  });
 
   useEffect(() => {
     if (localVideoRef.current && localStream) {
@@ -68,8 +81,10 @@ export function CallUI() {
           await client.createOffer();
         }
 
-        // Store client for cleanup
+        // Store client for cleanup and billing
         (window as any).__webrtcClient = client;
+        webrtcClientRef.current = client;
+        callStartTimeRef.current = Date.now();
       } catch (err) {
         console.error('Failed to initialize call:', err);
         setConnectionState('failed');
@@ -85,8 +100,45 @@ export function CallUI() {
       if (localStream) {
         localStream.getTracks().forEach((track) => track.stop());
       }
+      webrtcClientRef.current = null;
+      callStartTimeRef.current = null;
     };
   }, [currentRoom, isHost]);
+
+  // Timer update effect
+  useEffect(() => {
+    if (connectionState !== 'connected' || !callStartTimeRef.current) {
+      return;
+    }
+
+    const timerInterval = setInterval(() => {
+      const now = Date.now();
+      const elapsed = Math.floor((now - callStartTimeRef.current!) / 1000);
+      
+      // Calculate next payment countdown
+      // First payment happens at 180 seconds (3 minutes) after prepay period
+      // Subsequent payments every 60 seconds
+      const timeSinceStart = elapsed;
+      const firstBillingAt = 180; // First billing at 3 minutes (after prepay)
+      
+      let nextPaymentIn: number;
+      if (timeSinceStart < firstBillingAt) {
+        nextPaymentIn = firstBillingAt - timeSinceStart;
+      } else {
+        // Calculate time until next minute mark (after first billing)
+        const timeSinceFirstBilling = timeSinceStart - firstBillingAt;
+        const minutesSinceFirstBilling = Math.floor(timeSinceFirstBilling / 60);
+        const nextMinuteMark = firstBillingAt + (minutesSinceFirstBilling + 1) * 60;
+        nextPaymentIn = nextMinuteMark - timeSinceStart;
+      }
+
+      updateTimer(elapsed, nextPaymentIn);
+    }, 1000); // Update every second
+
+    return () => {
+      clearInterval(timerInterval);
+    };
+  }, [connectionState, updateTimer]);
 
   const handleEndCall = () => {
     if (endingCall) return;
@@ -118,9 +170,25 @@ export function CallUI() {
   };
 
   const getCountdownColor = () => {
+    if (billingStatus === 'frozen' || billingStatus === 'failed') return 'text-danger';
     if (nextPaymentCountdown > 30) return 'text-secondary';
     if (nextPaymentCountdown > 10) return 'text-accent';
     return 'text-danger';
+  };
+
+  const getBillingStatusText = () => {
+    switch (billingStatus) {
+      case 'paid':
+        return '✅ Paid';
+      case 'pending':
+        return '⏳ Processing...';
+      case 'failed':
+        return '❌ Payment Failed';
+      case 'frozen':
+        return '❄️ Frozen';
+      default:
+        return '';
+    }
   };
 
   return (
@@ -173,6 +241,18 @@ export function CallUI() {
               <div className={`text-sm ${getCountdownColor()}`}>
                 Next payment: {formatTime(nextPaymentCountdown)}
               </div>
+              {!isHost && (
+                <>
+                  <div className="text-xs mt-1">
+                    {getBillingStatusText()}
+                  </div>
+                  {totalPaid > 0 && (
+                    <div className="text-xs text-text-muted">
+                      Total paid: {totalPaid.toFixed(2)} USDC
+                    </div>
+                  )}
+                </>
+              )}
             </div>
 
             <div className="flex flex-wrap gap-2 justify-center">
