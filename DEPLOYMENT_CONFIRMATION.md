@@ -120,14 +120,14 @@ See `VERCEL_SETUP.md` for detailed instructions.
 - [ ] **Get Railway public URL** (from Railway dashboard)
 - [ ] **Test WebSocket connection**
 
-### Vercel (Frontend) - ✅ Connected, ⚠️ Needs Env Vars
+### Vercel (Frontend) - ✅ Configured
 - [x] Vercel account created
 - [x] Repository connected to Vercel
 - [x] Next.js auto-detected
-- [ ] **Add environment variables**:
-  - [ ] `NEXT_PUBLIC_SIGNALING_URL` (from Railway)
-  - [ ] `NEXT_PUBLIC_SOLANA_RPC_URL` (optional)
-- [ ] Redeploy after adding env vars
+- [x] **Environment variables configured**:
+  - [x] `NEXT_PUBLIC_SIGNALING_URL` = `wss://pay2chat-production.up.railway.app` ✅
+  - [ ] `NEXT_PUBLIC_SOLANA_RPC_URL` (optional - can add later)
+- [ ] Redeploy to apply changes (if not auto-deployed)
 - [ ] Verify deployment works
 
 ### Alternative: Netlify (Frontend) ⚠️
