@@ -1,0 +1,12 @@
+# Railway configuration for Pay2Chat signaling server
+# This service only runs the WebSocket signaling server (server.js)
+# NOT the Next.js frontend application
+
+[build]
+builder = "nixpacks"
+
+[deploy]
+start = "node server.js"
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 10
+
