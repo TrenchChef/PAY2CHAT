@@ -11,71 +11,81 @@ export function HostLobby() {
   const router = useRouter();
   const params = useParams();
   const roomId = params?.id as string;
-  const { currentRoom, setRoom, updateRoomConfig } = useRoomStore();
+  const { currentRoom, setRoom } = useRoomStore();
   const [copied, setCopied] = useState<'code' | 'shareable' | null>(null);
   const [startingCall, setStartingCall] = useState(false);
   const [shareableUrl, setShareableUrl] = useState<string>('');
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Get fallback URL from room
-  const getFallbackUrl = (room: Room | null) => {
-    if (!room || typeof window === 'undefined') return '';
-    return `${window.location.origin}/join?room=${room.id}&code=${room.joinCode}`;
-  };
-
-  // Load room from localStorage if not in store
+  // Load room - check store first, then localStorage
   useEffect(() => {
-    if (typeof window === 'undefined' || !roomId) {
-      if (!roomId) {
-        console.error('No room ID in URL');
-        setLoading(false);
-      }
-      return;
-    }
-
-    // If we already have the room in store and it matches the URL, we're good
-    if (currentRoom && currentRoom.id === roomId) {
-      console.log('Room already in store:', currentRoom.id);
+    if (typeof window === 'undefined') return;
+    
+    if (!roomId) {
+      setError('No room ID provided');
       setLoading(false);
       return;
     }
 
+    // First check if room is already in store (from same session)
+    if (currentRoom && currentRoom.id === roomId) {
+      console.log('✅ Room found in store');
+      setLoading(false);
+      setError(null);
+      return;
+    }
+
     // Try to load from localStorage
+    console.log('🔍 Loading room from localStorage, roomId:', roomId);
     try {
       const roomsStr = localStorage.getItem('x402_rooms');
-      const rooms = roomsStr ? JSON.parse(roomsStr) : [];
-      console.log('Loading rooms from localStorage:', rooms.length, 'rooms found');
+      if (!roomsStr) {
+        console.warn('⚠️ No rooms in localStorage');
+        setError('Room not found. Please create a new room.');
+        setLoading(false);
+        return;
+      }
+
+      const rooms = JSON.parse(roomsStr);
+      console.log('📦 Found', rooms.length, 'rooms in localStorage');
       
       const roomData = rooms.find((r: any) => r.id === roomId);
       
-      if (roomData) {
-        console.log('Room found in localStorage, restoring:', roomData.id);
-        // Restore room with PublicKey
+      if (!roomData) {
+        console.warn('❌ Room not found. Available IDs:', rooms.map((r: any) => r.id));
+        setError(`Room "${roomId}" not found. Available rooms: ${rooms.length}`);
+        setLoading(false);
+        return;
+      }
+
+      console.log('✅ Room found, restoring...', roomData);
+      
+      // Restore room with PublicKey
+      try {
         const restoredRoom: Room = {
           ...roomData,
           hostWallet: new PublicKey(roomData.hostWallet),
         };
         setRoom(restoredRoom, true);
+        setError(null);
         setLoading(false);
-      } else {
-        // Room not found, show error instead of redirecting immediately
-        console.warn('Room not found in localStorage:', roomId, 'Available rooms:', rooms.map((r: any) => r.id));
+        console.log('✅ Room restored successfully');
+      } catch (pkError) {
+        console.error('❌ Failed to restore PublicKey:', pkError);
+        setError('Failed to restore room data. Invalid wallet address.');
         setLoading(false);
-        // Don't redirect immediately - let the component show the error message
       }
     } catch (error) {
-      console.error('Failed to load room from localStorage:', error);
+      console.error('❌ Failed to load room:', error);
+      setError('Failed to load room from storage. Please try creating a new room.');
       setLoading(false);
-      // Don't redirect - let the component handle the error
     }
-  }, [roomId, setRoom]); // Removed router and currentRoom from deps
+  }, [roomId, currentRoom?.id, setRoom]);
 
   // Generate shareable URL when room is available
   useEffect(() => {
-    if (loading || typeof window === 'undefined') return;
-    
-    if (!currentRoom) {
-      setShareableUrl('');
+    if (loading || !currentRoom || typeof window === 'undefined') {
       return;
     }
 
@@ -87,40 +97,15 @@ export function HostLobby() {
     try {
       const shareable = encodeRoomToUrl(currentRoom);
       setShareableUrl(shareable);
+      console.log('✅ Shareable URL generated');
     } catch (error) {
-      console.error('Failed to generate shareable URL:', error);
-      // Keep the fallback URL that was already set
+      console.warn('⚠️ Failed to generate shareable URL, using fallback:', error);
+      // Keep the fallback URL
     }
   }, [currentRoom, loading]);
 
-  if (loading) {
-    return (
-      <div className="max-w-4xl mx-auto flex items-center justify-center min-h-[400px]">
-        <Spinner size="lg" />
-      </div>
-    );
-  }
-
-  if (!currentRoom) {
-    return (
-      <div className="max-w-4xl mx-auto">
-        <div className="bg-surface rounded-lg p-6 border border-border">
-          <h2 className="text-xl font-bold mb-4">Room Not Found</h2>
-          <p className="text-text-muted mb-4">
-            The room you're looking for could not be found. Please create a new room.
-          </p>
-          <button
-            onClick={() => router.push('/')}
-            className="px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-lg font-medium transition-colors"
-          >
-            Go Home
-          </button>
-        </div>
-      </div>
-    );
-  }
-
   const copyToClipboard = async (text: string, type: 'code' | 'shareable') => {
+    if (!text) return;
     try {
       await navigator.clipboard.writeText(text);
       setCopied(type);
@@ -131,11 +116,60 @@ export function HostLobby() {
   };
 
   const handleStartCall = () => {
-    if (startingCall) return;
+    if (startingCall || !currentRoom) return;
     setStartingCall(true);
     router.push(`/room/${currentRoom.id}/call`);
   };
 
+  const getFallbackUrl = (room: Room | null) => {
+    if (!room || typeof window === 'undefined') return '';
+    return `${window.location.origin}/join?room=${room.id}&code=${room.joinCode}`;
+  };
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="max-w-4xl mx-auto flex flex-col items-center justify-center min-h-[400px]">
+        <Spinner size="lg" />
+        <p className="mt-4 text-text-muted">Loading room...</p>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error || !currentRoom) {
+    return (
+      <div className="max-w-4xl mx-auto">
+        <div className="bg-surface rounded-lg p-6 border border-border">
+          <h2 className="text-xl font-bold mb-4 text-danger">Room Not Found</h2>
+          <p className="text-text-muted mb-4">
+            {error || 'The room you\'re looking for could not be found.'}
+          </p>
+          <div className="space-y-2">
+            <p className="text-sm text-text-muted">
+              Room ID: <code className="bg-background px-2 py-1 rounded">{roomId || 'N/A'}</code>
+            </p>
+            <div className="flex gap-4">
+              <button
+                onClick={() => router.push('/')}
+                className="px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-lg font-medium transition-colors"
+              >
+                Go Home
+              </button>
+              <button
+                onClick={() => router.push('/create')}
+                className="px-4 py-2 bg-surface-light hover:bg-surface-light/80 text-text rounded-lg font-medium transition-colors"
+              >
+                Create New Room
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Success state - show room UI
   return (
     <div className="max-w-4xl mx-auto">
       <h1 className="text-3xl font-bold mb-8">Host Lobby</h1>
@@ -167,7 +201,7 @@ export function HostLobby() {
           <div className="flex gap-2">
             <input
               type="text"
-              value={currentRoom.joinCode}
+              value={currentRoom.joinCode || ''}
               readOnly
               className="flex-1 px-4 py-2 bg-background border border-border rounded-lg text-text font-mono text-2xl text-center font-bold"
             />
@@ -180,7 +214,7 @@ export function HostLobby() {
           </div>
         </div>
 
-        {currentRoom.config.files.length > 0 && (
+        {currentRoom.config?.files && currentRoom.config.files.length > 0 && (
           <div>
             <h2 className="text-xl font-bold mb-4">Files</h2>
             <div className="space-y-2">
@@ -218,4 +252,3 @@ export function HostLobby() {
     </div>
   );
 }
-
