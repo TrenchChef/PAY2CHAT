@@ -91,9 +91,10 @@ export function CreateRoomForm() {
 
       setRoom(room, true);
       router.push(`/room/${room.id}/host`);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to create room:', error);
-      alert('Failed to create room. Please try again.');
+      const errorMessage = error?.message || 'Unknown error occurred';
+      alert(`Failed to create room: ${errorMessage}. Please try again.`);
     } finally {
       setLoading(false);
     }

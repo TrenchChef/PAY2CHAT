@@ -14,6 +14,11 @@ interface CreateRoomParams {
 }
 
 export async function createRoom(params: CreateRoomParams): Promise<Room> {
+  // Ensure this only runs in the browser
+  if (typeof window === 'undefined') {
+    throw new Error('createRoom can only be called in the browser');
+  }
+
   const { rate, hostWallet, fileList, description = '', options } = params;
 
   // Generate room ID and join code
@@ -34,7 +39,7 @@ export async function createRoom(params: CreateRoomParams): Promise<Room> {
     })
   );
 
-  const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
+  const baseUrl = window.location.origin;
   
   // Create standard URL
   const standardUrl = `${baseUrl}/join?room=${roomId}&code=${joinCode}`;
@@ -54,17 +59,29 @@ export async function createRoom(params: CreateRoomParams): Promise<Room> {
   };
 
   // Generate shareable URL with encoded data for cross-device support
-  if (typeof window !== 'undefined') {
+  try {
     const { encodeRoomToUrl } = await import('@/lib/utils/roomSharing');
     const shareableUrl = encodeRoomToUrl(room, baseUrl);
     (room as any).shareableUrl = shareableUrl;
+  } catch (error) {
+    console.warn('Failed to generate shareable URL:', error);
+    // Continue without shareable URL
   }
 
   // Store room in localStorage (in production, this would be on-chain or server)
-  if (typeof window !== 'undefined') {
+  // Note: PublicKey must be serialized as string for JSON storage
+  try {
     const rooms = JSON.parse(localStorage.getItem('x402_rooms') || '[]');
-    rooms.push(room);
+    // Serialize room with PublicKey as string
+    const serializableRoom = {
+      ...room,
+      hostWallet: room.hostWallet.toString(),
+    };
+    rooms.push(serializableRoom);
     localStorage.setItem('x402_rooms', JSON.stringify(rooms));
+  } catch (error) {
+    console.warn('Failed to store room in localStorage:', error);
+    // Continue without storing in localStorage
   }
 
   return room;
