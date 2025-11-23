@@ -3,12 +3,9 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-# Copy package files first (for better caching)
-COPY package.json package-lock.json* ./
-
-# Install dependencies
-# Using npm install instead of npm ci for more flexibility
-RUN npm install --production || npm install
+# Install only the dependencies needed for the server
+# Server only requires: ws (WebSocket library) and dotenv (optional, for .env files)
+RUN npm install ws dotenv
 
 # Copy server file
 COPY server.js ./
