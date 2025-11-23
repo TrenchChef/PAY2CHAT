@@ -90,6 +90,18 @@ export function CreateRoomForm() {
       });
 
       setRoom(room, true);
+      // Store room immediately before navigation to ensure it's available
+      // Also store in sessionStorage as backup
+      if (typeof window !== 'undefined') {
+        try {
+          sessionStorage.setItem('current_room', JSON.stringify({
+            ...room,
+            hostWallet: room.hostWallet.toString(),
+          }));
+        } catch (e) {
+          console.warn('Failed to store room in sessionStorage:', e);
+        }
+      }
       router.push(`/room/${room.id}/host`);
     } catch (error: any) {
       console.error('Failed to create room:', error);

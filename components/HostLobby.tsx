@@ -36,6 +36,27 @@ export function HostLobby() {
       return;
     }
 
+    // Try sessionStorage first (most recent room)
+    try {
+      const sessionRoomStr = sessionStorage.getItem('current_room');
+      if (sessionRoomStr) {
+        const sessionRoom = JSON.parse(sessionRoomStr);
+        if (sessionRoom.id === roomId) {
+          console.log('✅ Room found in sessionStorage');
+          const restoredRoom: Room = {
+            ...sessionRoom,
+            hostWallet: new PublicKey(sessionRoom.hostWallet),
+          };
+          setRoom(restoredRoom, true);
+          setError(null);
+          setLoading(false);
+          return;
+        }
+      }
+    } catch (e) {
+      console.warn('⚠️ Failed to check sessionStorage:', e);
+    }
+
     // Try to load from localStorage
     console.log('🔍 Loading room from localStorage, roomId:', roomId);
     try {
