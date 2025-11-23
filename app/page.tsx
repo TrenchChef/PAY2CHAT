@@ -1,6 +1,5 @@
 'use client';
 
-import { ConsentModal } from '@/components/ConsentModal';
 import { ActionScreen } from '@/components/ActionScreen';
 import { NavBar } from '@/components/NavBar';
 import { Footer } from '@/components/Footer';
@@ -17,8 +16,6 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <ConsentModal />
-      
       {consentGiven && (
         <>
           <NavBar />
