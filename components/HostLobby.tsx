@@ -1,23 +1,60 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { useRoomStore } from '@/lib/store/useRoomStore';
+import { useRouter, useParams } from 'next/navigation';
+import { useRoomStore, Room } from '@/lib/store/useRoomStore';
 import { Spinner } from './Spinner';
 import { encodeRoomToUrl } from '@/lib/utils/roomSharing';
+import { PublicKey } from '@solana/web3.js';
 
 export function HostLobby() {
   const router = useRouter();
-  const { currentRoom, updateRoomConfig } = useRoomStore();
+  const params = useParams();
+  const roomId = params?.id as string;
+  const { currentRoom, setRoom, updateRoomConfig } = useRoomStore();
   const [copied, setCopied] = useState<'code' | 'shareable' | null>(null);
   const [startingCall, setStartingCall] = useState(false);
   const [shareableUrl, setShareableUrl] = useState<string>('');
+  const [loading, setLoading] = useState(true);
 
+  // Load room from localStorage if not in store
   useEffect(() => {
-    if (!currentRoom) {
-      router.push('/');
+    if (typeof window === 'undefined') return;
+
+    // If we already have the room in store and it matches the URL, we're good
+    if (currentRoom && currentRoom.id === roomId) {
+      setLoading(false);
       return;
     }
+
+    // Try to load from localStorage
+    try {
+      const rooms = JSON.parse(localStorage.getItem('x402_rooms') || '[]');
+      const roomData = rooms.find((r: any) => r.id === roomId);
+      
+      if (roomData) {
+        // Restore room with PublicKey
+        const restoredRoom: Room = {
+          ...roomData,
+          hostWallet: new PublicKey(roomData.hostWallet),
+        };
+        setRoom(restoredRoom, true);
+        setLoading(false);
+      } else {
+        // Room not found, redirect to home
+        console.warn('Room not found in localStorage:', roomId);
+        setLoading(false);
+        router.push('/');
+      }
+    } catch (error) {
+      console.error('Failed to load room from localStorage:', error);
+      setLoading(false);
+      router.push('/');
+    }
+  }, [roomId, currentRoom, setRoom, router]);
+
+  useEffect(() => {
+    if (!currentRoom || loading) return;
 
     // Only generate shareable URL in browser (safety check)
     if (typeof window !== 'undefined') {
@@ -35,6 +72,14 @@ export function HostLobby() {
     // Listen for invitee joining (in production, this would be via WebSocket or polling)
     // For now, we'll navigate to call when user clicks "Start Call" or auto-navigate after delay
   }, [currentRoom, router]);
+
+  if (loading) {
+    return (
+      <div className="max-w-4xl mx-auto flex items-center justify-center min-h-[400px]">
+        <Spinner size="lg" />
+      </div>
+    );
+  }
 
   if (!currentRoom) return null;
 

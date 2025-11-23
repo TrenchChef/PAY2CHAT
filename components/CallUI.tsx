@@ -1,19 +1,24 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams, usePathname } from 'next/navigation';
 import { useCallStore } from '@/lib/store/useCallStore';
-import { useRoomStore } from '@/lib/store/useRoomStore';
+import { useRoomStore, Room } from '@/lib/store/useRoomStore';
 import { TipModal } from './TipModal';
 import { FilePurchaseModal } from './FilePurchaseModal';
 import { Spinner } from './Spinner';
 import { formatTime } from '@/lib/utils/time';
 import { useBilling } from '@/lib/hooks/useBilling';
 import { useWallet } from '@solana/wallet-adapter-react';
+import { PublicKey } from '@solana/web3.js';
 
 export function CallUI() {
   const router = useRouter();
-  const { currentRoom, isHost } = useRoomStore();
+  const params = useParams();
+  const pathname = usePathname();
+  const roomId = params?.id as string;
+  const { currentRoom, isHost, setRoom } = useRoomStore();
+  const [roomLoading, setRoomLoading] = useState(true);
   const {
     localStream,
     remoteStream,
@@ -40,6 +45,44 @@ export function CallUI() {
   const [videoOff, setVideoOff] = useState(false);
   const [endingCall, setEndingCall] = useState(false);
 
+  // Load room from localStorage if not in store
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    // If we already have the room in store and it matches the URL, we're good
+    if (currentRoom && currentRoom.id === roomId) {
+      setRoomLoading(false);
+      return;
+    }
+
+    // Try to load from localStorage
+    try {
+      const rooms = JSON.parse(localStorage.getItem('x402_rooms') || '[]');
+      const roomData = rooms.find((r: any) => r.id === roomId);
+      
+      if (roomData) {
+        // Restore room with PublicKey
+        const restoredRoom: Room = {
+          ...roomData,
+          hostWallet: new PublicKey(roomData.hostWallet),
+        };
+        // Determine if user is host based on URL path
+        const isHostUser = pathname?.includes('/host') || false;
+        setRoom(restoredRoom, isHostUser);
+        setRoomLoading(false);
+      } else {
+        // Room not found, redirect to home
+        console.warn('Room not found in localStorage:', roomId);
+        setRoomLoading(false);
+        router.push('/');
+      }
+    } catch (error) {
+      console.error('Failed to load room from localStorage:', error);
+      setRoomLoading(false);
+      router.push('/');
+    }
+  }, [roomId, currentRoom, setRoom, router]);
+
   // Initialize billing (only for invitee)
   useBilling({
     webrtcClient: webrtcClientRef.current,
@@ -59,7 +102,7 @@ export function CallUI() {
   }, [remoteStream]);
 
   useEffect(() => {
-    if (!currentRoom) return;
+    if (!currentRoom || roomLoading) return;
 
     // Initialize WebRTC connection
     const initCall = async () => {
@@ -190,6 +233,14 @@ export function CallUI() {
         return '';
     }
   };
+
+  if (roomLoading || !currentRoom) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Spinner size="lg" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
