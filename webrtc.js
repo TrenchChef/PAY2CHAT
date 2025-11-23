@@ -1760,12 +1760,15 @@ async function sendUsdcTransfer({ fromPubkey, toOwner, amount, mint = USDC_MINT_
       
       // Handle signAndSendTransaction result (if signature is already present)
       let txid;
+      let raw = null; // Initialize raw to null - will be set if we need to send manually
       if (signed.signature) {
         onProgress && onProgress({ attempt: attempt + 1, status: 'sending' });
         txid = signed.signature;
+        // Transaction was already sent via signAndSendTransaction, so we don't have raw
+        // We'll only be able to confirm on fallback, not resend
       } else {
         // Handle signTransaction result (need to send manually)
-        const raw = signed.serialize();
+        raw = signed.serialize();
         onProgress && onProgress({ attempt: attempt + 1, status: 'sending' });
         txid = await conn.sendRawTransaction(raw);
       }
@@ -1778,9 +1781,15 @@ async function sendUsdcTransfer({ fromPubkey, toOwner, amount, mint = USDC_MINT_
         if (fb && fb !== rpc) {
           rpc = fb;
           conn = new solanaWeb3.Connection(rpc, 'confirmed');
-          // re-send raw transaction on fallback
-          txid = await conn.sendRawTransaction(raw);
-          await conn.confirmTransaction(txid, 'confirmed');
+          // If we have raw transaction, resend it; otherwise just try to confirm existing txid
+          if (raw) {
+            // Re-send raw transaction on fallback RPC
+            txid = await conn.sendRawTransaction(raw);
+            await conn.confirmTransaction(txid, 'confirmed');
+          } else {
+            // Transaction was already sent (via signAndSendTransaction), just confirm on fallback
+            await conn.confirmTransaction(txid, 'confirmed');
+          }
         } else throw confErr;
       }
       return { success: true, txid };
