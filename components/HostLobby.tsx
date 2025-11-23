@@ -8,9 +8,11 @@ import { encodeRoomToUrl } from '@/lib/utils/roomSharing';
 import { PublicKey } from '@solana/web3.js';
 
 export function HostLobby() {
+  // Ensure we're in the browser before using hooks
+  const [mounted, setMounted] = useState(false);
   const router = useRouter();
   const params = useParams();
-  const roomId = params?.id as string;
+  const roomId = (params?.id as string) || '';
   const { currentRoom, setRoom } = useRoomStore();
   const [copied, setCopied] = useState<'code' | 'shareable' | null>(null);
   const [startingCall, setStartingCall] = useState(false);
@@ -18,9 +20,14 @@ export function HostLobby() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Ensure component is mounted (client-side only)
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   // Load room - check store first, then localStorage
   useEffect(() => {
-    if (typeof window === 'undefined') return;
+    if (typeof window === 'undefined' || !mounted) return;
     
     if (!roomId) {
       setError('No room ID provided');
@@ -102,7 +109,7 @@ export function HostLobby() {
       setError('Failed to load room from storage. Please try creating a new room.');
       setLoading(false);
     }
-  }, [roomId, currentRoom?.id, setRoom]);
+  }, [roomId, currentRoom?.id, setRoom, mounted]);
 
   // Generate shareable URL when room is available
   useEffect(() => {
@@ -146,6 +153,11 @@ export function HostLobby() {
     if (!room || typeof window === 'undefined') return '';
     return `${window.location.origin}/join?room=${room.id}&code=${room.joinCode}`;
   };
+
+  // Don't render until mounted (prevents SSR issues)
+  if (!mounted) {
+    return null;
+  }
 
   // Loading state
   if (loading) {
