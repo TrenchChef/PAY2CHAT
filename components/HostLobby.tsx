@@ -17,22 +17,39 @@ export function HostLobby() {
   const [shareableUrl, setShareableUrl] = useState<string>('');
   const [loading, setLoading] = useState(true);
 
+  // Get fallback URL from room
+  const getFallbackUrl = (room: Room | null) => {
+    if (!room || typeof window === 'undefined') return '';
+    return `${window.location.origin}/join?room=${room.id}&code=${room.joinCode}`;
+  };
+
   // Load room from localStorage if not in store
   useEffect(() => {
-    if (typeof window === 'undefined') return;
+    if (typeof window === 'undefined' || !roomId) {
+      if (!roomId) {
+        console.error('No room ID in URL');
+        setLoading(false);
+      }
+      return;
+    }
 
     // If we already have the room in store and it matches the URL, we're good
     if (currentRoom && currentRoom.id === roomId) {
+      console.log('Room already in store:', currentRoom.id);
       setLoading(false);
       return;
     }
 
     // Try to load from localStorage
     try {
-      const rooms = JSON.parse(localStorage.getItem('x402_rooms') || '[]');
+      const roomsStr = localStorage.getItem('x402_rooms');
+      const rooms = roomsStr ? JSON.parse(roomsStr) : [];
+      console.log('Loading rooms from localStorage:', rooms.length, 'rooms found');
+      
       const roomData = rooms.find((r: any) => r.id === roomId);
       
       if (roomData) {
+        console.log('Room found in localStorage, restoring:', roomData.id);
         // Restore room with PublicKey
         const restoredRoom: Room = {
           ...roomData,
@@ -41,37 +58,40 @@ export function HostLobby() {
         setRoom(restoredRoom, true);
         setLoading(false);
       } else {
-        // Room not found, redirect to home
-        console.warn('Room not found in localStorage:', roomId);
+        // Room not found, show error instead of redirecting immediately
+        console.warn('Room not found in localStorage:', roomId, 'Available rooms:', rooms.map((r: any) => r.id));
         setLoading(false);
-        router.push('/');
+        // Don't redirect immediately - let the component show the error message
       }
     } catch (error) {
       console.error('Failed to load room from localStorage:', error);
       setLoading(false);
-      router.push('/');
+      // Don't redirect - let the component handle the error
     }
-  }, [roomId, currentRoom, setRoom, router]);
+  }, [roomId, setRoom]); // Removed router and currentRoom from deps
 
+  // Generate shareable URL when room is available
   useEffect(() => {
-    if (!currentRoom || loading) return;
-
-    // Only generate shareable URL in browser (safety check)
-    if (typeof window !== 'undefined') {
-      try {
-        // Generate shareable URL with encoded room data for cross-device support
-        const shareable = encodeRoomToUrl(currentRoom);
-        setShareableUrl(shareable);
-      } catch (error) {
-        console.error('Failed to generate shareable URL:', error);
-        // Fallback to standard URL
-        setShareableUrl(currentRoom.url);
-      }
+    if (loading || typeof window === 'undefined') return;
+    
+    if (!currentRoom) {
+      setShareableUrl('');
+      return;
     }
 
-    // Listen for invitee joining (in production, this would be via WebSocket or polling)
-    // For now, we'll navigate to call when user clicks "Start Call" or auto-navigate after delay
-  }, [currentRoom, router]);
+    // Always set a fallback URL first
+    const fallbackUrl = currentRoom.url || `${window.location.origin}/join?room=${currentRoom.id}&code=${currentRoom.joinCode}`;
+    setShareableUrl(fallbackUrl);
+
+    // Try to generate shareable URL
+    try {
+      const shareable = encodeRoomToUrl(currentRoom);
+      setShareableUrl(shareable);
+    } catch (error) {
+      console.error('Failed to generate shareable URL:', error);
+      // Keep the fallback URL that was already set
+    }
+  }, [currentRoom, loading]);
 
   if (loading) {
     return (
@@ -81,7 +101,24 @@ export function HostLobby() {
     );
   }
 
-  if (!currentRoom) return null;
+  if (!currentRoom) {
+    return (
+      <div className="max-w-4xl mx-auto">
+        <div className="bg-surface rounded-lg p-6 border border-border">
+          <h2 className="text-xl font-bold mb-4">Room Not Found</h2>
+          <p className="text-text-muted mb-4">
+            The room you're looking for could not be found. Please create a new room.
+          </p>
+          <button
+            onClick={() => router.push('/')}
+            className="px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-lg font-medium transition-colors"
+          >
+            Go Home
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   const copyToClipboard = async (text: string, type: 'code' | 'shareable') => {
     try {
@@ -112,12 +149,12 @@ export function HostLobby() {
           <div className="flex gap-2">
             <input
               type="text"
-              value={shareableUrl}
+              value={shareableUrl || getFallbackUrl(currentRoom)}
               readOnly
               className="flex-1 px-4 py-2 bg-background border border-border rounded-lg text-text font-mono text-sm"
             />
             <button
-              onClick={() => copyToClipboard(shareableUrl, 'shareable')}
+              onClick={() => copyToClipboard(shareableUrl || getFallbackUrl(currentRoom), 'shareable')}
               className="px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-lg font-medium transition-colors"
             >
               {copied === 'shareable' ? 'Copied!' : 'Copy'}
