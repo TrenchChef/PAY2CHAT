@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useConsent } from './providers/ConsentProvider';
+import { Spinner } from './Spinner';
 
 export function ConsentModal() {
   const { consentGiven, setConsentGiven } = useConsent();
@@ -9,15 +10,16 @@ export function ConsentModal() {
   const [tosChecked, setTosChecked] = useState(false);
   const [ppChecked, setPpChecked] = useState(false);
   const [responsibilityChecked, setResponsibilityChecked] = useState(false);
+  const [processing, setProcessing] = useState(false);
 
   if (consentGiven) return null;
 
   const allChecked = ageChecked && tosChecked && ppChecked && responsibilityChecked;
 
   const handleContinue = () => {
-    if (allChecked) {
-      setConsentGiven(true);
-    }
+    if (!allChecked || processing) return;
+    setProcessing(true);
+    setConsentGiven(true);
   };
 
   return (
@@ -99,10 +101,17 @@ export function ConsentModal() {
 
         <button
           onClick={handleContinue}
-          disabled={!allChecked}
-          className="w-full py-3 bg-primary hover:bg-primary-hover text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          disabled={!allChecked || processing}
+          className="w-full py-3 bg-primary hover:bg-primary-hover text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
         >
-          Continue
+          {processing ? (
+            <>
+              <Spinner size="sm" />
+              <span>Processing...</span>
+            </>
+          ) : (
+            'Continue'
+          )}
         </button>
       </div>
     </div>

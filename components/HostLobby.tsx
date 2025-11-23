@@ -3,11 +3,13 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useRoomStore } from '@/lib/store/useRoomStore';
+import { Spinner } from './Spinner';
 
 export function HostLobby() {
   const router = useRouter();
   const { currentRoom, updateRoomConfig } = useRoomStore();
   const [copied, setCopied] = useState<'url' | 'code' | null>(null);
+  const [startingCall, setStartingCall] = useState(false);
 
   useEffect(() => {
     if (!currentRoom) {
@@ -32,6 +34,8 @@ export function HostLobby() {
   };
 
   const handleStartCall = () => {
+    if (startingCall) return;
+    setStartingCall(true);
     router.push(`/room/${currentRoom.id}/call`);
   };
 
@@ -112,9 +116,17 @@ export function HostLobby() {
           <p className="text-text-muted mb-4">Waiting for invitee to join...</p>
           <button
             onClick={handleStartCall}
-            className="w-full py-3 bg-primary hover:bg-primary-hover text-white rounded-lg font-medium transition-colors"
+            disabled={startingCall}
+            className="w-full py-3 bg-primary hover:bg-primary-hover text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
-            Start Call (Test)
+            {startingCall ? (
+              <>
+                <Spinner size="sm" />
+                <span>Starting Call...</span>
+              </>
+            ) : (
+              'Start Call (Test)'
+            )}
           </button>
         </div>
       </div>

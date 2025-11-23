@@ -6,6 +6,7 @@ import { useCallStore } from '@/lib/store/useCallStore';
 import { useRoomStore } from '@/lib/store/useRoomStore';
 import { TipModal } from './TipModal';
 import { FilePurchaseModal } from './FilePurchaseModal';
+import { Spinner } from './Spinner';
 import { formatTime } from '@/lib/utils/time';
 
 export function CallUI() {
@@ -30,6 +31,7 @@ export function CallUI() {
   const [showFileModal, setShowFileModal] = useState(false);
   const [audioMuted, setAudioMuted] = useState(false);
   const [videoOff, setVideoOff] = useState(false);
+  const [endingCall, setEndingCall] = useState(false);
 
   useEffect(() => {
     if (localVideoRef.current && localStream) {
@@ -87,6 +89,8 @@ export function CallUI() {
   }, [currentRoom, isHost]);
 
   const handleEndCall = () => {
+    if (endingCall) return;
+    setEndingCall(true);
     endCall();
     if (isHost) {
       router.push(`/room/${currentRoom?.id}/host/post-call`);
@@ -200,9 +204,17 @@ export function CallUI() {
               )}
               <button
                 onClick={handleEndCall}
-                className="px-4 py-2 bg-danger hover:bg-danger/80 rounded-lg"
+                disabled={endingCall}
+                className="px-4 py-2 bg-danger hover:bg-danger/80 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
               >
-                End Call
+                {endingCall ? (
+                  <>
+                    <Spinner size="sm" />
+                    <span>Ending...</span>
+                  </>
+                ) : (
+                  'End Call'
+                )}
               </button>
             </div>
           </div>

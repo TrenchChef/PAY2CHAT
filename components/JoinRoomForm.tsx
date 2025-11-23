@@ -6,6 +6,7 @@ import { useWallet } from '@solana/wallet-adapter-react';
 import { useWalletModal } from '@solana/wallet-adapter-react-ui';
 import { joinRoom } from '@/lib/room/joinRoom';
 import { Room } from '@/lib/store/useRoomStore';
+import { Spinner } from './Spinner';
 
 interface JoinRoomFormProps {
   initialRoomId?: string;
@@ -20,6 +21,7 @@ export function JoinRoomForm({ initialRoomId, initialCode }: JoinRoomFormProps) 
   const [room, setRoom] = useState<Room | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [joiningCall, setJoiningCall] = useState(false);
 
   useEffect(() => {
     if (initialRoomId || initialCode) {
@@ -111,10 +113,22 @@ export function JoinRoomForm({ initialRoomId, initialCode }: JoinRoomFormProps) 
           </div>
 
           <button
-            onClick={() => router.push(`/room/${room.id}/call`)}
-            className="w-full py-3 bg-primary hover:bg-primary-hover text-white rounded-lg font-medium transition-colors"
+            onClick={() => {
+              if (joiningCall) return;
+              setJoiningCall(true);
+              router.push(`/room/${room.id}/call`);
+            }}
+            disabled={joiningCall}
+            className="w-full py-3 bg-primary hover:bg-primary-hover text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
-            Agree & Join Call
+            {joiningCall ? (
+              <>
+                <Spinner size="sm" />
+                <span>Joining Call...</span>
+              </>
+            ) : (
+              'Agree & Join Call'
+            )}
           </button>
         </div>
       </div>
@@ -142,9 +156,16 @@ export function JoinRoomForm({ initialRoomId, initialCode }: JoinRoomFormProps) 
         <button
           onClick={handleJoin}
           disabled={loading || !roomInput.trim()}
-          className="w-full py-3 bg-primary hover:bg-primary-hover text-white rounded-lg font-medium transition-colors disabled:opacity-50"
+          className="w-full py-3 bg-primary hover:bg-primary-hover text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
         >
-          {loading ? 'Joining...' : 'Join Room'}
+          {loading ? (
+            <>
+              <Spinner size="sm" />
+              <span>Joining...</span>
+            </>
+          ) : (
+            'Join Room'
+          )}
         </button>
       </div>
     </div>

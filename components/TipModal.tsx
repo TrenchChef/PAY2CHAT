@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { PublicKey } from '@solana/web3.js';
 import { usePayments } from '@/lib/hooks/usePayments';
+import { Spinner } from './Spinner';
 
 interface TipModalProps {
   onClose: () => void;
@@ -48,9 +49,16 @@ export function TipModal({ onClose, hostWallet }: TipModalProps) {
               key={amt}
               onClick={() => handleTip(amt)}
               disabled={loading}
-              className="py-3 bg-primary hover:bg-primary-hover text-white rounded-lg font-medium transition-colors disabled:opacity-50"
+              className="py-3 bg-primary hover:bg-primary-hover text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
-              {amt} USDC
+              {loading ? (
+                <>
+                  <Spinner size="sm" />
+                  <span>Processing...</span>
+                </>
+              ) : (
+                `${amt} USDC`
+              )}
             </button>
           ))}
         </div>
@@ -71,10 +79,17 @@ export function TipModal({ onClose, hostWallet }: TipModalProps) {
             />
             <button
               onClick={handleCustomTip}
-              disabled={loading}
-              className="px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-lg font-medium transition-colors disabled:opacity-50"
+              disabled={loading || !customAmount}
+              className="px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
-              Send
+              {loading ? (
+                <>
+                  <Spinner size="sm" />
+                  <span>Sending...</span>
+                </>
+              ) : (
+                'Send'
+              )}
             </button>
           </div>
         </div>

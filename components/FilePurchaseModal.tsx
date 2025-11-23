@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { PublicKey } from '@solana/web3.js';
 import { FileMetadata } from '@/lib/store/useRoomStore';
 import { usePayments } from '@/lib/hooks/usePayments';
+import { Spinner } from './Spinner';
 import { generateTimeLimitedDownloadUrl } from '@/lib/files/decrypt';
 
 interface FilePurchaseModalProps {
@@ -86,9 +87,16 @@ export function FilePurchaseModal({
               <button
                 onClick={() => handlePurchase(file)}
                 disabled={loading || purchasingFileId === file.id}
-                className="w-full py-2 bg-primary hover:bg-primary-hover text-white rounded-lg font-medium transition-colors disabled:opacity-50"
+                className="w-full py-2 bg-primary hover:bg-primary-hover text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
-                {loading || purchasingFileId === file.id ? 'Processing...' : 'Purchase'}
+                {loading || purchasingFileId === file.id ? (
+                  <>
+                    <Spinner size="sm" />
+                    <span>Processing...</span>
+                  </>
+                ) : (
+                  'Purchase'
+                )}
               </button>
             </div>
           ))}

@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { FileUploadList } from './FileUploadList';
+import { Spinner } from './Spinner';
 import { createRoom } from '@/lib/room/createRoom';
 import { useRoomStore, FileMetadata } from '@/lib/store/useRoomStore';
 
@@ -198,9 +199,16 @@ export function CreateRoomForm() {
             <button
               onClick={handleCreateRoom}
               disabled={loading}
-              className="flex-1 py-3 bg-primary hover:bg-primary-hover text-white rounded-lg font-medium transition-colors disabled:opacity-50"
+              className="flex-1 py-3 bg-primary hover:bg-primary-hover text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
-              {loading ? 'Creating...' : 'Create Room'}
+              {loading ? (
+                <>
+                  <Spinner size="sm" />
+                  <span>Creating...</span>
+                </>
+              ) : (
+                'Create Room'
+              )}
             </button>
           </div>
         </div>

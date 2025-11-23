@@ -1,27 +1,34 @@
 'use client';
 
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { useWalletModal } from '@solana/wallet-adapter-react-ui';
+import { Spinner } from './Spinner';
 
 export function ActionScreen() {
   const router = useRouter();
   const { publicKey } = useWallet();
   const { setVisible } = useWalletModal();
+  const [navigating, setNavigating] = useState<string | null>(null);
 
   const handleCreateRoom = () => {
+    if (navigating) return;
     if (!publicKey) {
       setVisible(true);
       return;
     }
+    setNavigating('create');
     router.push('/create');
   };
 
   const handleJoinRoom = () => {
+    if (navigating) return;
     if (!publicKey) {
       setVisible(true);
       return;
     }
+    setNavigating('join');
     router.push('/join');
   };
 
@@ -45,9 +52,17 @@ export function ActionScreen() {
           </p>
           <button
             onClick={handleCreateRoom}
-            className="w-full py-3 bg-primary hover:bg-primary-hover text-white rounded-lg font-medium transition-colors"
+            disabled={navigating !== null}
+            className="w-full py-3 bg-primary hover:bg-primary-hover text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
-            Create Chat
+            {navigating === 'create' ? (
+              <>
+                <Spinner size="sm" />
+                <span>Loading...</span>
+              </>
+            ) : (
+              'Create Chat'
+            )}
           </button>
         </div>
 
@@ -59,9 +74,17 @@ export function ActionScreen() {
           </p>
           <button
             onClick={handleJoinRoom}
-            className="w-full py-3 bg-secondary hover:bg-secondary/80 text-white rounded-lg font-medium transition-colors"
+            disabled={navigating !== null}
+            className="w-full py-3 bg-secondary hover:bg-secondary/80 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
-            Join Chat
+            {navigating === 'join' ? (
+              <>
+                <Spinner size="sm" />
+                <span>Loading...</span>
+              </>
+            ) : (
+              'Join Chat'
+            )}
           </button>
         </div>
       </div>
