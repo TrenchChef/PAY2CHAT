@@ -154,9 +154,14 @@ export function HostLobby() {
     return `${window.location.origin}/join?room=${room.id}&code=${room.joinCode}`;
   };
 
-  // Don't render until mounted (prevents SSR issues)
+  // Show loading message while mounting (prevents SSR issues)
   if (!mounted) {
-    return null;
+    return (
+      <div className="max-w-4xl mx-auto flex flex-col items-center justify-center min-h-[400px]">
+        <Spinner size="lg" />
+        <p className="mt-4 text-text-muted">Please wait...</p>
+      </div>
+    );
   }
 
   // Loading state
