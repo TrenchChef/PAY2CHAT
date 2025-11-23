@@ -22,7 +22,7 @@ window.PAY2CHAT_CONFIG = {
   MAX_OFFER_LENGTH: 16000
   ,
   // Build toggle: disable on-chain payments for this build
-  PAYMENTS_DISABLED: true
+  PAYMENTS_DISABLED: false
   ,
   // ICE / TURN configuration: add STUN/TURN servers here for improved connectivity.
   // Example entry: { urls: 'stun:stun.l.google.com:19302' }
