@@ -17,7 +17,6 @@ export function CreateRoomForm() {
   const { setRoom } = useRoomStore();
   const [step, setStep] = useState(0); // Start at step 0 (wallet connection)
   const [rate, setRate] = useState(1.0);
-  const [description, setDescription] = useState('');
   const [allowCamera, setAllowCamera] = useState(true);
   const [allowMic, setAllowMic] = useState(true);
   const [allowFilePurchasesDuringCall, setAllowFilePurchasesDuringCall] = useState(false);
@@ -83,7 +82,6 @@ export function CreateRoomForm() {
         rate,
         hostWallet: publicKey,
         fileList: files,
-        description,
         options: {
           allowCamera,
           allowMic,
@@ -171,19 +169,6 @@ export function CreateRoomForm() {
             </p>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium mb-2">
-              Description
-            </label>
-            <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              rows={4}
-              className="w-full px-4 py-2 bg-background border border-border rounded-lg text-text"
-              placeholder="Describe your room..."
-            />
-          </div>
-
           <div className="space-y-4">
             <label className="flex items-center gap-3">
               <input
@@ -252,9 +237,6 @@ export function CreateRoomForm() {
           <div className="space-y-2">
             <p>
               <strong>Rate:</strong> {rate} USDC/min
-            </p>
-            <p>
-              <strong>Description:</strong> {description || 'None'}
             </p>
             <p>
               <strong>File Purchases:</strong> {allowFilePurchasesDuringCall ? 'Enabled' : 'Disabled'}

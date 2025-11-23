@@ -15,7 +15,7 @@ export interface FileMetadata {
 
 export interface RoomConfig {
   rate: number; // USDC per minute
-  description: string;
+  description?: string; // Optional description
   allowCamera: boolean;
   allowMic: boolean;
   allowFilePurchasesDuringCall: boolean;

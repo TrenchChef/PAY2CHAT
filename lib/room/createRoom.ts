@@ -5,7 +5,7 @@ interface CreateRoomParams {
   rate: number;
   hostWallet: PublicKey;
   fileList: FileMetadata[];
-  description: string;
+  description?: string; // Optional, defaults to empty string
   options: {
     allowCamera: boolean;
     allowMic: boolean;
@@ -14,7 +14,7 @@ interface CreateRoomParams {
 }
 
 export async function createRoom(params: CreateRoomParams): Promise<Room> {
-  const { rate, hostWallet, fileList, description, options } = params;
+  const { rate, hostWallet, fileList, description = '', options } = params;
 
   // Generate room ID and join code
   const roomId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
@@ -44,7 +44,7 @@ export async function createRoom(params: CreateRoomParams): Promise<Room> {
     hostWallet,
     config: {
       rate,
-      description,
+      description: description || '', // Ensure empty string if not provided
       files: encryptedFiles,
       ...options,
     },
