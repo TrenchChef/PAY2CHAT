@@ -493,6 +493,19 @@ async function connectSolflare() {
     walletAddrSpan.textContent = pubkeyObj.toString();
     await loadUsdcBalance(pubkeyObj);
     try { updateSolBadge(pubkeyObj); } catch(e){}
+    
+    // Listen for disconnect event (Solflare supports disconnect events)
+    if (window.solflare.on && typeof window.solflare.on === 'function') {
+      window.solflare.on('disconnect', () => {
+        walletAddrSpan.textContent = '';
+        usdcBalanceSpan.textContent = '-';
+        currentWallet = null;
+        try { if (disconnectWalletBtn) disconnectWalletBtn.style.display = 'none'; } catch(e){}
+        try { if (copyAddressBtn) copyAddressBtn.style.display = 'none'; } catch(e){}
+        try { updateRoleUI(); } catch(e){}
+      });
+    }
+    
     currentWallet = { provider: window.solflare, pubkey: pubkeyObj, name: 'Solflare' };
     // update UI state for roles
     try { updateRoleUI(); } catch(e) { /* ignore */ }
@@ -503,10 +516,161 @@ async function connectSolflare() {
   }
 }
 
+// WalletConnect adapter support
+let walletConnectAdapter = null;
+
 async function connectWalletConnect() {
-  // Placeholder: full WalletConnect support for Solana requires a Solana-specific adapter.
-  walletError.textContent = 'WalletConnect for Solana is not enabled in this demo. To enable it, include a Solana WalletConnect adapter or the Wallet Adapter library and re-run.';
-  console.info('WalletConnect requested; include a Solana WalletConnect adapter or wallet-adapter integration to enable.');
+  walletError.textContent = '';
+  usdcBalanceSpan.textContent = '-';
+  
+  try {
+    // Check if wallet adapter library is available
+    // Try multiple possible global variable names for CDN compatibility
+    const WalletAdapterBase = window.SolanaWalletAdapterBase || window.WalletAdapterBase;
+    const WalletAdapterWalletConnect = window.SolanaWalletAdapterWalletConnect || window.WalletAdapterWalletConnect;
+    const WalletAdapterWallets = window.SolanaWalletAdapterWallets || window.WalletAdapterWallets;
+    
+    if (!WalletAdapterBase || (!WalletAdapterWalletConnect && !WalletAdapterWallets)) {
+      walletError.textContent = 'Wallet adapter library not loaded. Please refresh the page.';
+      console.warn('Wallet adapter CDN scripts not loaded. Available globals:', Object.keys(window).filter(k => k.includes('Wallet')));
+      return;
+    }
+    
+    // Initialize WalletConnect adapter if not already initialized
+    if (!walletConnectAdapter) {
+      // Try to get WalletConnectWalletAdapter from wallets package or direct package
+      let WalletConnectWalletAdapter;
+      if (WalletAdapterWallets && WalletAdapterWallets.WalletConnectWalletAdapter) {
+        WalletConnectWalletAdapter = WalletAdapterWallets.WalletConnectWalletAdapter;
+      } else if (WalletAdapterWalletConnect && WalletAdapterWalletConnect.WalletConnectWalletAdapter) {
+        WalletConnectWalletAdapter = WalletAdapterWalletConnect.WalletConnectWalletAdapter;
+      } else {
+        walletError.textContent = 'WalletConnect adapter not found in loaded libraries.';
+        console.warn('WalletConnect adapter not available');
+        return;
+      }
+      
+      // Create adapter with network configuration
+      const cluster = (clusterSelect && clusterSelect.value) || 'mainnet-beta';
+      const network = cluster === 'devnet' ? 'devnet' : 'mainnet-beta';
+      
+      walletConnectAdapter = new WalletConnectWalletAdapter({
+        network,
+        options: {
+          relayUrl: 'wss://relay.walletconnect.com',
+          // Optional: Add project ID from WalletConnect Cloud for better UX
+          // projectId: 'YOUR_PROJECT_ID'
+        }
+      });
+      
+      // Set up adapter event listeners
+      walletConnectAdapter.on('connect', async (publicKey) => {
+        try {
+          const pubkeyObj = new solanaWeb3.PublicKey(publicKey.toString());
+          walletAddrSpan.textContent = pubkeyObj.toString();
+          await loadUsdcBalance(pubkeyObj);
+          try { updateSolBadge(pubkeyObj); } catch(e){}
+          currentWallet = { 
+            provider: walletConnectAdapter, 
+            adapter: walletConnectAdapter,
+            pubkey: pubkeyObj, 
+            name: 'WalletConnect' 
+          };
+          try { updateRoleUI(); } catch(e) { /* ignore */ }
+          try { if (disconnectWalletBtn) disconnectWalletBtn.style.display = 'inline-block'; } catch(e){}
+          try { if (copyAddressBtn) copyAddressBtn.style.display = 'inline-block'; } catch(e){}
+        } catch (err) {
+          console.error('WalletConnect connect handler error:', err);
+        }
+      });
+      
+      walletConnectAdapter.on('disconnect', () => {
+        walletAddrSpan.textContent = '';
+        usdcBalanceSpan.textContent = '-';
+        currentWallet = null;
+      });
+      
+      walletConnectAdapter.on('error', (error) => {
+        console.error('WalletConnect error:', error);
+        walletError.textContent = 'WalletConnect error: ' + (error.message || error);
+      });
+    }
+    
+    // Connect the adapter
+    await walletConnectAdapter.connect();
+    
+    if (walletConnectAdapter.connected && walletConnectAdapter.publicKey) {
+      const pubkeyObj = new solanaWeb3.PublicKey(walletConnectAdapter.publicKey.toString());
+      walletAddrSpan.textContent = pubkeyObj.toString();
+      await loadUsdcBalance(pubkeyObj);
+      try { updateSolBadge(pubkeyObj); } catch(e){}
+      currentWallet = { 
+        provider: walletConnectAdapter, 
+        adapter: walletConnectAdapter,
+        pubkey: pubkeyObj, 
+        name: 'WalletConnect' 
+      };
+      try { updateRoleUI(); } catch(e) { /* ignore */ }
+      try { if (disconnectWalletBtn) disconnectWalletBtn.style.display = 'inline-block'; } catch(e){}
+      try { if (copyAddressBtn) copyAddressBtn.style.display = 'inline-block'; } catch(e){}
+    }
+  } catch (err) {
+    console.error('WalletConnect connection failed:', err);
+    walletError.textContent = 'WalletConnect connection failed: ' + (err.message || err.toString());
+  }
+}
+
+// Unified transaction signing interface
+// Supports Phantom, Solflare, and WalletConnect adapters
+async function signTransactionUnified(wallet, transaction, connection = null) {
+  if (!wallet || !transaction) {
+    throw { code: 'NO_WALLET', message: 'Wallet or transaction not provided' };
+  }
+  
+  const provider = wallet.provider || wallet;
+  const adapter = wallet.adapter || wallet.provider?.adapter;
+  
+  // Handle WalletAdapter interface (for WalletConnect and adapter-based wallets)
+  if (adapter && typeof adapter.signTransaction === 'function') {
+    try {
+      // Adapter-based signing
+      const signed = await adapter.signTransaction(transaction);
+      return signed;
+    } catch (err) {
+      // Fallback to direct provider if adapter fails
+      console.warn('Adapter signTransaction failed, trying provider:', err);
+    }
+  }
+  
+  // Handle direct wallet provider API (Phantom, Solflare)
+  if (provider) {
+    // Try signAndSendTransaction first (Phantom modern API)
+    if (typeof provider.signAndSendTransaction === 'function') {
+      try {
+        const result = await provider.signAndSendTransaction(transaction);
+        // Return transaction with signature property
+        if (result.signature) {
+          return { serialize: () => transaction.serialize(), signature: result.signature };
+        }
+        return result;
+      } catch (err) {
+        // Fall back to signTransaction if signAndSendTransaction fails
+        console.warn('signAndSendTransaction failed, trying signTransaction:', err);
+      }
+    }
+    
+    // Try signTransaction (standard API)
+    if (typeof provider.signTransaction === 'function') {
+      try {
+        const signed = await provider.signTransaction(transaction);
+        return signed;
+      } catch (err) {
+        throw { code: 'SIGN_FAILED', message: 'Transaction signing failed: ' + (err.message || err) };
+      }
+    }
+  }
+  
+  throw { code: 'NO_SIGNER', message: 'No transaction signer available for this wallet' };
 }
 
 // MetaMask/EVM wallet support removed for now. Will add when EVM networks (Base, etc.) are supported.
@@ -571,22 +735,37 @@ async function updateSolBadge(pubkey) {
 connectPhantomBtn && (connectPhantomBtn.onclick = connectPhantom);
 connectSolflareBtn && (connectSolflareBtn.onclick = connectSolflare);
 connectWCBtn && (connectWCBtn.onclick = connectWalletConnect);
-// Disconnect wallet handler (works for Phantom/Solflare providers)
+// Disconnect wallet handler (works for Phantom/Solflare/WalletConnect providers)
 if (disconnectWalletBtn) {
   disconnectWalletBtn.onclick = async () => {
     try {
       walletError.textContent = '';
+      
+      // Handle WalletConnect adapter disconnect
+      if (currentWallet && currentWallet.adapter && typeof currentWallet.adapter.disconnect === 'function') {
+        try { 
+          await currentWallet.adapter.disconnect(); 
+        } catch(e) { 
+          console.warn('WalletConnect adapter disconnect error:', e);
+        }
+      }
+      
+      // Handle direct provider disconnect (Phantom, Solflare)
       if (currentWallet && currentWallet.provider && currentWallet.provider.disconnect) {
         try { await currentWallet.provider.disconnect(); } catch(e) { /* ignore */ }
       }
-      // try legacy window.solana disconnect
+      
+      // try legacy window.solana disconnect (Phantom)
       if (window.solana && window.solana.isPhantom && window.solana.disconnect) {
         try { await window.solana.disconnect(); } catch(e) { /* ignore */ }
       }
+      
+      // try legacy window.solflare disconnect
       if (window.solflare && window.solflare.disconnect) {
         try { await window.solflare.disconnect(); } catch(e) { /* ignore */ }
       }
     } catch (e) { console.warn('Disconnect error', e); }
+    
     // clear UI
     try { walletAddrSpan.textContent = ''; } catch(e){}
     try { usdcBalanceSpan.textContent = '-'; } catch(e){}
@@ -594,6 +773,7 @@ if (disconnectWalletBtn) {
     try { disconnectWalletBtn.style.display = 'none'; } catch(e){}
     try { copyAddressBtn.style.display = 'none'; } catch(e){}
     currentWallet = null;
+    walletConnectAdapter = null; // Reset WalletConnect adapter
     try { updateRoleUI(); } catch(e){}
   };
 }
@@ -694,11 +874,29 @@ clusterSelect && (clusterSelect.onchange = () => {
     } catch (e) { /* ignore */ }
   }
 
-  // wire header navigation if present
+  // wire header navigation if present (main container nav)
   try {
     document.getElementById('navHome') && (document.getElementById('navHome').onclick = (e)=>{e.preventDefault(); navigateTo('home');});
-    document.getElementById('navCreate') && (document.getElementById('navCreate').onclick = (e)=>{e.preventDefault(); navigateTo('create');});
+    document.getElementById('navStart') && (document.getElementById('navStart').onclick = (e)=>{e.preventDefault(); navigateTo('create');});
     document.getElementById('navJoin') && (document.getElementById('navJoin').onclick = (e)=>{e.preventDefault(); navigateTo('join');});
+    
+    // Additional navigation links (FAQ, Privacy, Terms)
+    document.getElementById('navFaq') && (document.getElementById('navFaq').onclick = (e)=>{e.preventDefault(); /* FAQ functionality can be added later */});
+    document.getElementById('navPrivacy') && (document.getElementById('navPrivacy').onclick = (e)=>{e.preventDefault(); window.open('legal/privacy.html', '_blank');});
+    document.getElementById('navTerms') && (document.getElementById('navTerms').onclick = (e)=>{e.preventDefault(); window.open('legal/tos.html', '_blank');});
+    
+    // Landing page navigation handlers (ensure all landing nav links work)
+    const landingNavStart = document.querySelector('#landing nav a[href="#start"]');
+    const landingNavJoin = document.querySelector('#landing nav a[href="#join"]');
+    const landingNavFaq = document.querySelector('#landing nav a[href="#faq"]');
+    const landingNavPrivacy = document.querySelector('#landing nav a[href="#privacy"]');
+    const landingNavTerms = document.querySelector('#landing nav a[href="#terms"]');
+    
+    if (landingNavStart) landingNavStart.onclick = (e) => { e.preventDefault(); hideLandingAndNavigate('create'); };
+    if (landingNavJoin) landingNavJoin.onclick = (e) => { e.preventDefault(); hideLandingAndNavigate('join'); };
+    if (landingNavFaq) landingNavFaq.onclick = (e) => { e.preventDefault(); /* FAQ functionality can be added later */ };
+    if (landingNavPrivacy) landingNavPrivacy.onclick = (e) => { e.preventDefault(); window.open('legal/privacy.html', '_blank'); };
+    if (landingNavTerms) landingNavTerms.onclick = (e) => { e.preventDefault(); window.open('legal/tos.html', '_blank'); };
   } catch(e){}
 
   // SDP modal helpers
@@ -875,11 +1073,15 @@ clusterSelect && (clusterSelect.onchange = () => {
 
   function renderFileList() {
     if (!hostRoom || !hostRoom.files) { fileList.innerHTML = '<em>No files added</em>'; return; }
-    // Stage 9: Assign IDs to files for transfer
-    hostRoom.files = hostRoom.files.map((f, i) => ({
-      ...f,
-      id: f.id || `file_${i}_${Date.now()}`
-    }));
+    // Stage 9: Assign IDs to files for transfer (only if not already assigned)
+    // IDs must be stable and match when sending to invitee
+    if (!hostRoom.filesAssigned || hostRoom.filesAssigned !== true) {
+      hostRoom.files = hostRoom.files.map((f, i) => ({
+        ...f,
+        id: f.id || `file_${i}_${Date.now()}`
+      }));
+      hostRoom.filesAssigned = true; // Mark as assigned to prevent regeneration
+    }
     fileList.innerHTML = hostRoom.files.map((f,i)=>`<div>${i+1}. ${f.name} — ${f.price} USDC</div>`).join('');
   }
 
@@ -1233,23 +1435,23 @@ async function publishOfferOnchain(roomCode, payload) {
       data: Buffer.from(dataStr, 'utf8')
     });
     tx.add(ins);
-    // send via wallet provider
-    const signerProvider = (currentWallet && currentWallet.provider) || window.solana;
-    if (!signerProvider) throw new Error('No wallet provider available to sign memo transaction');
-    // attempt high-level signAndSendTransaction if available (Phantom modern API)
-    if (signerProvider.signAndSendTransaction) {
-      const signed = await signerProvider.signAndSendTransaction(tx);
+    // send via unified wallet adapter interface
+    const wallet = currentWallet || (window.solana ? { provider: window.solana } : null);
+    if (!wallet) throw new Error('No wallet provider available to sign memo transaction');
+    
+    // Use unified transaction signing
+    const signed = await signTransactionUnified(wallet, tx, conn);
+    
+    // Handle signAndSendTransaction result (if signature is already present)
+    if (signed.signature) {
       return { success: true, txid: signed.signature };
     }
-    // fallback: signTransaction + sendRawTransaction
-    if (signerProvider.signTransaction) {
-      const signedTx = await signerProvider.signTransaction(tx);
-      const raw = signedTx.serialize();
-      const txid = await conn.sendRawTransaction(raw);
-      await conn.confirmTransaction(txid, 'confirmed');
-      return { success: true, txid };
-    }
-    throw new Error('Wallet provider does not support signing transactions in this environment');
+    
+    // Handle signTransaction result (need to send manually)
+    const raw = signed.serialize();
+    const txid = await conn.sendRawTransaction(raw);
+    await conn.confirmTransaction(txid, 'confirmed');
+    return { success: true, txid };
   } catch (e) {
     console.warn('publishOfferOnchain failed', e);
     return { success: false, error: (e && e.message) ? e.message : String(e) };
@@ -1549,14 +1751,25 @@ async function sendUsdcTransfer({ fromPubkey, toOwner, amount, mint = USDC_MINT_
   let attempt = 0;
   while (attempt < maxRetries) {
     try {
-      // sign using available Solana wallet provider (Phantom, Solflare, etc.)
+      // sign using unified wallet adapter interface (Phantom, Solflare, WalletConnect)
       onProgress && onProgress({ attempt: attempt + 1, status: 'signing' });
-      const signerProvider = (currentWallet && currentWallet.provider) || window.solana;
-      if (!signerProvider || !signerProvider.signTransaction) throw { code: 'NO_SIGNER', message: 'No wallet signer available for Solana transaction' };
-      const signed = await signerProvider.signTransaction(tx);
-      const raw = signed.serialize();
-      onProgress && onProgress({ attempt: attempt + 1, status: 'sending' });
-      let txid = await conn.sendRawTransaction(raw);
+      const wallet = currentWallet || (window.solana ? { provider: window.solana } : null);
+      if (!wallet) throw { code: 'NO_SIGNER', message: 'No wallet signer available for Solana transaction' };
+      
+      const signed = await signTransactionUnified(wallet, tx, conn);
+      
+      // Handle signAndSendTransaction result (if signature is already present)
+      let txid;
+      if (signed.signature) {
+        onProgress && onProgress({ attempt: attempt + 1, status: 'sending' });
+        txid = signed.signature;
+      } else {
+        // Handle signTransaction result (need to send manually)
+        const raw = signed.serialize();
+        onProgress && onProgress({ attempt: attempt + 1, status: 'sending' });
+        txid = await conn.sendRawTransaction(raw);
+      }
+      
       try {
         await conn.confirmTransaction(txid, 'confirmed');
       } catch (confErr) {
@@ -2360,10 +2573,12 @@ function sendFileListToInvitee() {
   if (!dataChannel || dataChannel.readyState !== 'open') return;
   
   try {
+    // Use existing file IDs that were assigned during renderFileList()
+    // This ensures IDs match between host and invitee
     dataChannel.send(JSON.stringify({
       type: 'file_list',
-      files: hostRoom.files.map((f, idx) => ({
-        id: `file_${idx}_${Date.now()}`,
+      files: hostRoom.files.map((f) => ({
+        id: f.id || `file_${hostRoom.files.indexOf(f)}_${Date.now()}`, // Fallback only if missing
         name: f.name,
         price: f.price
       })),
@@ -2545,12 +2760,37 @@ async function handleFilePurchaseRequest(fileId, txid) {
 // Stage 9: Handle file chunk (invitee side)
 function handleFileChunk(fileId, chunkIndex, totalChunks, chunkData, fileName) {
   if (!fileTransferChunks[fileId]) {
-    fileTransferChunks[fileId] = { chunks: [], expected: totalChunks, totalSize: 0, fileName: null };
+    fileTransferChunks[fileId] = { 
+      chunks: new Array(totalChunks), // Pre-allocate array with exact size
+      expected: totalChunks, 
+      received: 0, // Track number of chunks received
+      fileName: null 
+    };
   }
   
   const transfer = fileTransferChunks[fileId];
+  
+  // Update expected chunks if we learn the real total
+  if (totalChunks > transfer.expected) {
+    transfer.expected = totalChunks;
+    // Expand chunks array if needed
+    if (transfer.chunks.length < totalChunks) {
+      const oldChunks = transfer.chunks;
+      transfer.chunks = new Array(totalChunks);
+      oldChunks.forEach((chunk, idx) => {
+        if (chunk) transfer.chunks[idx] = chunk;
+      });
+    }
+  }
+  
   if (!transfer.fileName && fileName) {
     transfer.fileName = fileName;
+  }
+  
+  // Skip if we already have this chunk (idempotent handling)
+  if (transfer.chunks[chunkIndex]) {
+    logStatus(`File chunk ${chunkIndex + 1}/${totalChunks} already received (duplicate ignored)`);
+    return;
   }
   
   // Decrypt chunk (simple placeholder)
@@ -2563,17 +2803,18 @@ function handleFileChunk(fileId, chunkIndex, totalChunks, chunkData, fileName) {
     for (let i = 0; i < binaryString.length; i++) {
       bytes[i] = binaryString.charCodeAt(i);
     }
+    // Store chunk at correct index (handles out-of-order arrival)
     transfer.chunks[chunkIndex] = bytes;
-    transfer.totalSize += bytes.length;
+    transfer.received += 1;
     
     // Update UI with progress
     if (filePurchases[fileId]) {
       filePurchases[fileId].status = 'transferring';
-      filePurchases[fileId].progress = Math.floor(((chunkIndex + 1) / totalChunks) * 100);
+      filePurchases[fileId].progress = Math.floor((transfer.received / transfer.expected) * 100);
       updateInviteeFileListUI();
     }
     
-    logStatus(`File chunk received: ${chunkIndex + 1}/${totalChunks} (${transfer.totalSize} bytes)`);
+    logStatus(`File chunk received: ${chunkIndex + 1}/${totalChunks} (${transfer.received}/${transfer.expected} chunks)`);
   } catch (e) {
     console.error('Failed to decode chunk', e);
   }
@@ -2582,16 +2823,40 @@ function handleFileChunk(fileId, chunkIndex, totalChunks, chunkData, fileName) {
 // Stage 9: Handle file transfer complete (invitee side)
 function handleFileComplete(fileId, fileName) {
   const transfer = fileTransferChunks[fileId];
-  if (!transfer || !transfer.chunks) {
+  if (!transfer || !transfer.chunks || transfer.chunks.length === 0) {
     console.warn('No chunks received for file:', fileId);
     return;
   }
   
-  // Reassemble file from chunks
-  const fileData = new Uint8Array(transfer.totalSize);
+  // Validate all chunks received
+  const missingChunks = [];
+  for (let i = 0; i < transfer.expected; i++) {
+    if (!transfer.chunks[i]) {
+      missingChunks.push(i);
+    }
+  }
+  
+  if (missingChunks.length > 0) {
+    console.error(`File transfer incomplete: missing chunks ${missingChunks.join(', ')}`);
+    logStatus(`File transfer incomplete: missing ${missingChunks.length} chunk(s). Please retry.`);
+    // Optionally: request retransmission of missing chunks
+    return;
+  }
+  
+  // Calculate actual total file size from all chunks
+  let totalSize = 0;
+  for (let i = 0; i < transfer.chunks.length; i++) {
+    if (transfer.chunks[i]) {
+      totalSize += transfer.chunks[i].length;
+    }
+  }
+  
+  // Reassemble file from chunks in correct order
+  const fileData = new Uint8Array(totalSize);
   let offset = 0;
   for (let i = 0; i < transfer.chunks.length; i++) {
     if (transfer.chunks[i]) {
+      // Write chunk at correct offset (handles out-of-order arrival)
       fileData.set(transfer.chunks[i], offset);
       offset += transfer.chunks[i].length;
     }
@@ -2611,5 +2876,5 @@ function handleFileComplete(fileId, fileName) {
   // Clean up
   delete fileTransferChunks[fileId];
   
-  logStatus(`File reassembly complete: ${finalFileName} (${fileData.length} bytes)`);
+  logStatus(`File reassembly complete: ${finalFileName} (${fileData.length} bytes, ${transfer.received}/${transfer.expected} chunks)`);
 }
