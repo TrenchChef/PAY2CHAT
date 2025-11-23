@@ -4,12 +4,14 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { useWalletModal } from '@solana/wallet-adapter-react-ui';
-import { joinRoom } from '@/lib/room/joinRoom';
 import { Room } from '@/lib/store/useRoomStore';
 import { Spinner } from './Spinner';
 import { getUSDCBalance } from '@/lib/solana/wallet';
 import { usePayments } from '@/lib/hooks/usePayments';
 import { calculatePrepaymentAmount } from '@/lib/utils/paymentSplit';
+
+// Lazy load joinRoom to prevent build-time evaluation
+const loadJoinRoom = () => import('@/lib/room/joinRoom').then(m => m.joinRoom);
 
 interface JoinRoomFormProps {
   initialRoomId?: string;
@@ -79,6 +81,7 @@ export function JoinRoomForm({ initialRoomId, initialCode }: JoinRoomFormProps) 
     setError('');
 
     try {
+      const joinRoom = await loadJoinRoom();
       const joinedRoom = await joinRoom(roomInput, publicKey);
       setRoom(joinedRoom);
     } catch (err: any) {
