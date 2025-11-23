@@ -51,12 +51,15 @@ NEXT_PUBLIC_SOLANA_RPC_URL=https://api.mainnet-beta.solana.com
    - Click on your project
    - Go to **Settings** → **Environment Variables**
 
-3. **Add Each Variable**
-   - Click **Add New**
+3. **Add or Update Variables**
+   - If variable doesn't exist: Click **Add New**
+   - If variable already exists: Click on the variable name to edit it
    - Enter variable name (e.g., `NEXT_PUBLIC_SIGNALING_URL`)
    - Enter variable value (e.g., `wss://your-railway-url`)
    - Select environments: **Production**, **Preview**, and **Development**
    - Click **Save**
+   
+   **Note**: If you see "A variable with the name already exists", click on the existing variable to edit/update its value instead of creating a new one.
 
 4. **Redeploy**
    - After adding variables, go to **Deployments**
