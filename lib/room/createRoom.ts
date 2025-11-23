@@ -9,8 +9,7 @@ interface CreateRoomParams {
   options: {
     allowCamera: boolean;
     allowMic: boolean;
-    allowScreenShare: boolean;
-    allowPreCallFilePurchases: boolean;
+    allowFilePurchasesDuringCall: boolean;
   };
 }
 
