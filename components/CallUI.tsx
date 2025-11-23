@@ -134,6 +134,7 @@ export function CallUI() {
             muted
             playsInline
             className="w-full h-full object-cover"
+            style={{ WebkitPlaysinline: true } as React.CSSProperties}
           />
           <div className="absolute top-2 left-2 bg-black bg-opacity-50 px-2 py-1 rounded text-sm">
             You {audioMuted && '🔇'} {videoOff && '📷'}
@@ -148,6 +149,7 @@ export function CallUI() {
               autoPlay
               playsInline
               className="w-full h-full object-cover"
+              style={{ WebkitPlaysinline: true } as React.CSSProperties}
             />
           ) : (
             <div className="flex items-center justify-center h-full text-text-muted">
@@ -163,7 +165,7 @@ export function CallUI() {
       {/* Timer and Controls */}
       <div className="bg-surface border-t border-border p-4">
         <div className="max-w-4xl mx-auto">
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-4 mb-4">
             <div>
               <div className="text-2xl font-bold">
                 {formatTime(elapsedTime)}
@@ -173,16 +175,16 @@ export function CallUI() {
               </div>
             </div>
 
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2 justify-center">
               <button
                 onClick={toggleMute}
-                className="px-4 py-2 bg-surface-light hover:bg-surface-light/80 rounded-lg"
+                className="px-4 py-2 bg-surface-light hover:bg-surface-light/80 rounded-lg text-sm md:text-base"
               >
                 {audioMuted ? '🔇 Unmute' : '🔊 Mute'}
               </button>
               <button
                 onClick={toggleVideo}
-                className="px-4 py-2 bg-surface-light hover:bg-surface-light/80 rounded-lg"
+                className="px-4 py-2 bg-surface-light hover:bg-surface-light/80 rounded-lg text-sm md:text-base"
               >
                 {videoOff ? '📷 Camera On' : '📷 Camera Off'}
               </button>

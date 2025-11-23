@@ -3,22 +3,23 @@
 import { ConsentModal } from '@/components/ConsentModal';
 import { ActionScreen } from '@/components/ActionScreen';
 import { NavBar } from '@/components/NavBar';
+import { Footer } from '@/components/Footer';
 import { useConsent } from '@/components/providers/ConsentProvider';
 
 export default function Home() {
   const { consentGiven } = useConsent();
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background flex flex-col">
       <ConsentModal />
       
       {consentGiven && (
         <>
           <NavBar />
 
-          <main>
+          <main className="flex-1">
             {/* Hero Section */}
-            <section className="container mx-auto px-4 py-16 text-center">
+            <section id="top" className="container mx-auto px-4 py-16 text-center">
               <h1 className="text-5xl font-bold mb-6">
                 Private P2P Video Chat with Crypto Payments
               </h1>
@@ -144,54 +145,9 @@ export default function Home() {
               </div>
             </section>
 
-            {/* Pricing Section */}
-            <section id="pricing" className="container mx-auto px-4 py-16">
-              <h2 className="text-3xl font-bold text-center mb-12">Pricing</h2>
-              <div className="max-w-2xl mx-auto">
-                <div className="bg-surface rounded-lg p-8 border border-border">
-                  <h3 className="text-2xl font-bold mb-4">Pay Per Minute</h3>
-                  <p className="text-text-muted mb-6">
-                    Hosts set their own per-minute rate (0.1 - 100 USDC). Invitees pay automatically every 60 seconds.
-                  </p>
-                  <div className="space-y-4">
-                    <div className="flex justify-between items-center py-3 border-b border-border">
-                      <span className="text-text-muted">Minimum Rate</span>
-                      <span className="font-mono font-bold">0.1 USDC/min</span>
-                    </div>
-                    <div className="flex justify-between items-center py-3 border-b border-border">
-                      <span className="text-text-muted">Maximum Rate</span>
-                      <span className="font-mono font-bold">100 USDC/min</span>
-                    </div>
-                    <div className="flex justify-between items-center py-3 border-b border-border">
-                      <span className="text-text-muted">Prepayment</span>
-                      <span className="font-mono font-bold">3 minutes upfront</span>
-                    </div>
-                    <div className="flex justify-between items-center py-3">
-                      <span className="text-text-muted">Billing Frequency</span>
-                      <span className="font-mono font-bold">Every 60 seconds</span>
-                    </div>
-                  </div>
-                  <div className="mt-6 p-4 bg-background rounded border border-border">
-                    <p className="text-sm text-text-muted">
-                      💡 <strong>Tip:</strong> All payments are on-chain Solana USDC transfers. 
-                      No platform fees. Hosts receive 100% of payments.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </section>
-
-            {/* CTA Section */}
-            <section className="bg-surface py-16">
-              <div className="container mx-auto px-4 text-center">
-                <h2 className="text-3xl font-bold mb-4">Ready to Get Started?</h2>
-                <p className="text-text-muted mb-8 max-w-2xl mx-auto">
-                  Connect your wallet and start creating or joining rooms today.
-                </p>
-                <ActionScreen />
-              </div>
-            </section>
           </main>
+
+          <Footer />
         </>
       )}
     </div>

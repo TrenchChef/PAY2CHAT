@@ -18,11 +18,35 @@ export class WebRTCClient {
   }
 
   async initialize() {
-    // Get user media
-    this.localStream = await navigator.mediaDevices.getUserMedia({
-      video: true,
-      audio: true,
-    });
+    // Get user media with mobile Safari compatible constraints
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    const constraints: MediaStreamConstraints = {
+      video: {
+        width: { ideal: 1280 },
+        height: { ideal: 720 },
+        facingMode: 'user',
+        // iOS Safari specific constraints
+        ...(isIOS && {
+          aspectRatio: { ideal: 16 / 9 },
+        }),
+      },
+      audio: {
+        echoCancellation: true,
+        noiseSuppression: true,
+        autoGainControl: true,
+      },
+    };
+
+    try {
+      this.localStream = await navigator.mediaDevices.getUserMedia(constraints);
+    } catch (error: any) {
+      // Fallback to basic constraints if advanced ones fail
+      console.warn('Failed with advanced constraints, trying basic:', error);
+      this.localStream = await navigator.mediaDevices.getUserMedia({
+        video: true,
+        audio: true,
+      });
+    }
 
     // Create peer connection
     const iceServers = [

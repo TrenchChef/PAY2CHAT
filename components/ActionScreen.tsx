@@ -44,7 +44,7 @@ export function ActionScreen() {
       </div>
 
       <div className="grid md:grid-cols-2 gap-6">
-        <div className="bg-surface rounded-lg p-8 border border-border hover:border-primary transition-colors">
+        <div id="create" className="bg-surface rounded-lg p-8 border border-border hover:border-primary transition-colors scroll-mt-20">
           <div className="text-4xl mb-4">🎥</div>
           <h2 className="text-2xl font-bold mb-2">Create Room</h2>
           <p className="text-text-muted mb-6">
@@ -66,7 +66,7 @@ export function ActionScreen() {
           </button>
         </div>
 
-        <div className="bg-surface rounded-lg p-8 border border-border hover:border-secondary transition-colors">
+        <div id="join" className="bg-surface rounded-lg p-8 border border-border hover:border-secondary transition-colors scroll-mt-20">
           <div className="text-4xl mb-4">👤+</div>
           <h2 className="text-2xl font-bold mb-2">Join Room</h2>
           <p className="text-text-muted mb-6">

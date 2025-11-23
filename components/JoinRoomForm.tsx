@@ -8,6 +8,8 @@ import { joinRoom } from '@/lib/room/joinRoom';
 import { Room } from '@/lib/store/useRoomStore';
 import { Spinner } from './Spinner';
 import { getUSDCBalance } from '@/lib/solana/wallet';
+import { usePayments } from '@/lib/hooks/usePayments';
+import { calculatePrepaymentAmount } from '@/lib/utils/paymentSplit';
 
 interface JoinRoomFormProps {
   initialRoomId?: string;
@@ -26,6 +28,9 @@ export function JoinRoomForm({ initialRoomId, initialCode }: JoinRoomFormProps) 
   const [joiningCall, setJoiningCall] = useState(false);
   const [balance, setBalance] = useState<number | null>(null);
   const [loadingBalance, setLoadingBalance] = useState(false);
+  const [prepaymentComplete, setPrepaymentComplete] = useState(false);
+  const [prepaymentTxid, setPrepaymentTxid] = useState<string | null>(null);
+  const { prepayForCall, loading: paymentLoading } = usePayments();
 
   useEffect(() => {
     if (publicKey) {
@@ -129,29 +134,81 @@ export function JoinRoomForm({ initialRoomId, initialCode }: JoinRoomFormProps) 
             </p>
             <ul className="text-sm text-text-muted space-y-2 list-disc list-inside">
               <li>Pay {room.config.rate} USDC per minute</li>
+              <li>Prepay for first 3 minutes ({calculatePrepaymentAmount(room.config.rate)} USDC)</li>
               <li>On-chain transaction finality</li>
               <li>Billing model and terms</li>
             </ul>
           </div>
 
-          <button
-            onClick={() => {
-              if (joiningCall) return;
-              setJoiningCall(true);
-              router.push(`/room/${room.id}/call`);
-            }}
-            disabled={joiningCall}
-            className="w-full py-3 bg-primary hover:bg-primary-hover text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-          >
-            {joiningCall ? (
-              <>
-                <Spinner size="sm" />
-                <span>Joining Call...</span>
-              </>
-            ) : (
-              'Agree & Join Call'
-            )}
-          </button>
+          {!prepaymentComplete ? (
+            <div className="space-y-4">
+              <div className="bg-accent/10 border border-accent rounded p-4">
+                <p className="text-sm font-medium mb-2">
+                  Prepayment Required: {calculatePrepaymentAmount(room.config.rate)} USDC
+                </p>
+                <p className="text-xs text-text-muted">
+                  This covers the first 3 minutes. 85% goes to the host, 15% to the platform.
+                </p>
+              </div>
+              <button
+                onClick={async () => {
+                  if (!publicKey) {
+                    setStep(0);
+                    return;
+                  }
+                  try {
+                    const result = await prepayForCall(room.hostWallet, room.config.rate);
+                    setPrepaymentTxid(result.txid);
+                    setPrepaymentComplete(true);
+                  } catch (error: any) {
+                    alert(`Prepayment failed: ${error.message}`);
+                  }
+                }}
+                disabled={paymentLoading || !publicKey}
+                className="w-full py-3 bg-primary hover:bg-primary-hover text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                {paymentLoading ? (
+                  <>
+                    <Spinner size="sm" />
+                    <span>Processing Payment...</span>
+                  </>
+                ) : (
+                  `Prepay ${calculatePrepaymentAmount(room.config.rate)} USDC (3 minutes)`
+                )}
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="bg-secondary/10 border border-secondary rounded p-4">
+                <p className="text-sm font-medium text-secondary mb-1">
+                  ✓ Prepayment Confirmed
+                </p>
+                {prepaymentTxid && (
+                  <p className="text-xs text-text-muted font-mono">
+                    TX: {prepaymentTxid.slice(0, 8)}...{prepaymentTxid.slice(-8)}
+                  </p>
+                )}
+              </div>
+              <button
+                onClick={() => {
+                  if (joiningCall) return;
+                  setJoiningCall(true);
+                  router.push(`/room/${room.id}/call`);
+                }}
+                disabled={joiningCall}
+                className="w-full py-3 bg-primary hover:bg-primary-hover text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                {joiningCall ? (
+                  <>
+                    <Spinner size="sm" />
+                    <span>Joining Call...</span>
+                  </>
+                ) : (
+                  'Join Call'
+                )}
+              </button>
+            </div>
+          )}
         </div>
       </div>
     );

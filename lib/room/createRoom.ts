@@ -34,6 +34,11 @@ export async function createRoom(params: CreateRoomParams): Promise<Room> {
     })
   );
 
+  const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
+  
+  // Create standard URL
+  const standardUrl = `${baseUrl}/join?room=${roomId}&code=${joinCode}`;
+  
   const room: Room = {
     id: roomId,
     hostWallet,
@@ -44,9 +49,16 @@ export async function createRoom(params: CreateRoomParams): Promise<Room> {
       ...options,
     },
     joinCode,
-    url: `${typeof window !== 'undefined' ? window.location.origin : ''}/join?room=${roomId}&code=${joinCode}`,
+    url: standardUrl,
     createdAt: Date.now(),
   };
+
+  // Generate shareable URL with encoded data for cross-device support
+  if (typeof window !== 'undefined') {
+    const { encodeRoomToUrl } = await import('@/lib/utils/roomSharing');
+    const shareableUrl = encodeRoomToUrl(room, baseUrl);
+    (room as any).shareableUrl = shareableUrl;
+  }
 
   // Store room in localStorage (in production, this would be on-chain or server)
   if (typeof window !== 'undefined') {

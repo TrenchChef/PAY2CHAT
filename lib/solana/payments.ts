@@ -90,3 +90,48 @@ export async function createUSDCTransferTransaction(
   return transaction;
 }
 
+/**
+ * Create split payment transaction (85% to host, 15% to platform)
+ */
+export async function createSplitPaymentTransaction(
+  from: PublicKey,
+  hostWallet: PublicKey,
+  totalAmount: number,
+  platformWallet: PublicKey
+): Promise<Transaction> {
+  const connection = getConnection();
+  const mint = await getMint(connection, USDC_MINT);
+
+  // Calculate split
+  const hostAmount = totalAmount * 0.85;
+  const platformAmount = totalAmount * 0.15;
+
+  // Convert to token amounts (USDC has 6 decimals)
+  const hostAmountInSmallestUnit = BigInt(Math.floor(hostAmount * 1_000_000));
+  const platformAmountInSmallestUnit = BigInt(Math.floor(platformAmount * 1_000_000));
+
+  const fromATA = await getAssociatedTokenAddress(USDC_MINT, from);
+  const hostATA = await getAssociatedTokenAddress(USDC_MINT, hostWallet);
+  const platformATA = await getAssociatedTokenAddress(USDC_MINT, platformWallet);
+
+  const transaction = new Transaction()
+    .add(
+      createTransferInstruction(
+        fromATA,
+        hostATA,
+        from,
+        hostAmountInSmallestUnit
+      )
+    )
+    .add(
+      createTransferInstruction(
+        fromATA,
+        platformATA,
+        from,
+        platformAmountInSmallestUnit
+      )
+    );
+
+  return transaction;
+}
+
