@@ -138,21 +138,6 @@ export function HostLobby() {
           </div>
         )}
 
-        <div>
-          <h2 className="text-xl font-bold mb-2">Description</h2>
-          <textarea
-            value={currentRoom.config.description}
-            onChange={(e) =>
-              updateRoomConfig({ description: e.target.value })
-            }
-            rows={4}
-            className="w-full px-4 py-2 bg-background border border-border rounded-lg text-text"
-          />
-          <p className="text-sm text-text-muted mt-1">
-            You can modify the description, but not the rate or files.
-          </p>
-        </div>
-
         <div className="pt-4 border-t border-border">
           <p className="text-text-muted mb-4">Waiting for invitee to join...</p>
           <button
