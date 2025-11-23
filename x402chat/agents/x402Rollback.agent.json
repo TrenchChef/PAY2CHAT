@@ -1,0 +1,35 @@
+{
+  "name": "x402Rollback",
+  "description": "Before running any write-heavy agent, creates BOTH a git snapshot and full file backup. Can restore either.",
+  "includes": [
+    "**/*"
+  ],
+  "steps": [
+    {
+      "goal": "Create Git snapshot pre-change.",
+      "instructions": [
+        "If repo is a git repo, run: git status to verify clean/dirty.",
+        "Create a snapshot branch/tag: x402-snapshot-<timestamp>.",
+        "If dirty, git add -A && git commit -m 'x402 pre-agent snapshot <timestamp>' on snapshot branch.",
+        "Return to original branch after snapshot."
+      ]
+    },
+    {
+      "goal": "Create full file backup pre-change.",
+      "instructions": [
+        "Create backups/<timestamp>/ directory at repo root.",
+        "Copy entire repo excluding node_modules, .git, backups, logs to backups/<timestamp>/ .",
+        "Write backups/<timestamp>/MANIFEST.txt listing copied files."
+      ]
+    },
+    {
+      "goal": "Restore on demand.",
+      "instructions": [
+        "If user triggers rollback, offer two restore paths: git-based or file-based.",
+        "Git restore: checkout snapshot branch/tag, then cherry-pick or reset --hard.",
+        "File restore: copy backups/<timestamp> back into repo, overwriting current files.",
+        "Confirm restored state with build + typecheck."
+      ]
+    }
+  ]
+}

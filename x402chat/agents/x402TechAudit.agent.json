@@ -1,0 +1,62 @@
+{
+  "name": "x402TechAudit",
+  "description": "Scan entire x402chat codebase and output full dependency, env var, secret, and system requirement analysis.",
+  "includes": [
+    "**/*"
+  ],
+  "steps": [
+    {
+      "goal": "Extract and categorize dependencies",
+      "instructions": [
+        "Parse package.json, lockfiles, peer deps, missing deps.",
+        "Generate dependency table."
+      ]
+    },
+    {
+      "goal": "Scan import usage",
+      "instructions": [
+        "Map imports across all TS/JS code.",
+        "Detect unused, missing, or mismatched imports."
+      ]
+    },
+    {
+      "goal": "Identify system requirements",
+      "instructions": [
+        "Detect Node version, TS config, build tools.",
+        "List required frameworks."
+      ]
+    },
+    {
+      "goal": "Scan env vars",
+      "instructions": [
+        "Find all process.env.* references.",
+        "Map required and optional variables."
+      ]
+    },
+    {
+      "goal": "Extract secrets & integrations",
+      "instructions": [
+        "Scan for RPC, TURN, API keys.",
+        "Detect hardcoded secrets."
+      ]
+    },
+    {
+      "goal": "Blockchain/WebRTC stack audit",
+      "instructions": [
+        "Check SPL-token, web3.js, wallet adapters, ICE server config."
+      ]
+    },
+    {
+      "goal": "Health report",
+      "instructions": [
+        "Report unused deps, deprecated calls, inconsistent versions."
+      ]
+    },
+    {
+      "goal": "Output installation guide",
+      "instructions": [
+        "Generate bash script, requirements, onboarding steps."
+      ]
+    }
+  ]
+}

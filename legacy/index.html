@@ -1,0 +1,1080 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>X402 CHAT - Private P2P Video Chat with Crypto Payments</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    /* Design System Variables */
+    :root {
+      --primary: #7C3AED;
+      --primary-hover: #8B5CF6;
+      --secondary: #10B981;
+      --accent: #F59E0B;
+      --background: #181c20;
+      --surface: #1F2937;
+      --surface-light: #374151;
+      --text: #FFFFFF;
+      --text-muted: #9CA3AF;
+      --border: #4B5563;
+      --danger: #EF4444;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--background);
+      color: var(--text);
+      margin: 0;
+      padding: 0;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    .container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      min-height: 100vh;
+      padding: 16px;
+      max-width: 1200px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    /* Typography */
+    h1, h2, h3, h4 {
+      font-weight: 700;
+      margin: 0;
+      color: var(--text);
+    }
+    h1 { font-size: 24px; line-height: 32px; }
+    h2 { font-size: 20px; line-height: 28px; }
+    h3 { font-size: 16px; line-height: 24px; }
+    h4 { font-size: 14px; line-height: 20px; }
+
+    p {
+      font-size: 14px;
+      line-height: 20px;
+      color: var(--text-muted);
+    }
+
+    /* Buttons */
+    button {
+      font-family: 'Inter', sans-serif;
+      font-weight: 500;
+      font-size: 14px;
+      padding: 12px 24px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      background: var(--primary);
+      color: white;
+      margin: 4px;
+    }
+    button:hover:not(:disabled) {
+      background: var(--primary-hover);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3);
+    }
+    button:active:not(:disabled) {
+      transform: translateY(0);
+    }
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    button.secondary {
+      background: transparent;
+      border: 1px solid var(--primary);
+      color: var(--primary);
+    }
+    button.secondary:hover:not(:disabled) {
+      background: var(--primary);
+      color: white;
+    }
+    button.join-btn {
+      background: var(--secondary);
+      color: white;
+    }
+    button.join-btn:hover:not(:disabled) {
+      background: #059669;
+    }
+    button.danger {
+      background: var(--danger);
+    }
+    button.danger:hover:not(:disabled) {
+      background: #DC2626;
+    }
+
+    /* Inputs */
+    input[type="text"],
+    input[type="number"],
+    textarea,
+    select {
+      font-family: 'Inter', sans-serif;
+      font-size: 14px;
+      padding: 10px 12px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      width: 100%;
+      transition: all 0.15s ease;
+    }
+    input[type="text"]:focus,
+    input[type="number"]:focus,
+    textarea:focus,
+    select:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1);
+    }
+    input[type="text"].monospace,
+    textarea.monospace {
+      font-family: 'JetBrains Mono', 'Courier New', monospace;
+      font-size: 14px;
+    }
+
+    label {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text);
+      display: block;
+      margin-bottom: 6px;
+    }
+
+    /* Video Elements */
+    .row {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    video {
+      width: 100%;
+      max-width: 480px;
+      height: auto;
+      aspect-ratio: 16 / 9;
+      background: #111;
+      border-radius: 12px;
+      object-fit: cover;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+    }
+
+    /* Cards */
+    .card {
+      background: var(--surface);
+      border-radius: 12px;
+      padding: 24px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+    }
+
+    /* Header */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      padding: 16px 0;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 24px;
+    }
+    header .logo {
+      font-weight: 700;
+      font-size: 24px;
+      color: var(--text);
+    }
+    nav a {
+      font-size: 14px;
+      color: var(--text-muted);
+      text-decoration: none;
+      margin-right: 16px;
+      transition: color 0.15s ease;
+    }
+    nav a:hover {
+      color: var(--text);
+    }
+
+    /* Badges */
+    .badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 500;
+      background: var(--surface);
+      color: var(--text-muted);
+    }
+    .badge.success {
+      background: rgba(16, 185, 129, 0.2);
+      color: var(--secondary);
+    }
+
+    /* Landing Page */
+    #landing {
+      position: fixed;
+      inset: 0;
+      background: var(--background);
+      z-index: 1000;
+      overflow-y: auto;
+      padding: 0;
+    }
+    
+    #landing .landing-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 32px 24px;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    #landing .hero-section {
+      text-align: center;
+      padding: 80px 20px 60px;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    #landing .hero-section h1 {
+      font-size: 48px;
+      font-weight: 700;
+      line-height: 1.2;
+      margin-bottom: 20px;
+      color: var(--text);
+    }
+
+    #landing .hero-section .tagline {
+      font-size: 20px;
+      color: var(--text);
+      margin-bottom: 40px;
+      font-weight: 400;
+    }
+
+    #landing .cta-buttons {
+      display: flex;
+      gap: 16px;
+      justify-content: center;
+      margin-bottom: 80px;
+      flex-wrap: wrap;
+    }
+
+    #landing .cta-buttons button {
+      padding: 16px 32px;
+      font-size: 16px;
+      font-weight: 600;
+      border-radius: 8px;
+      min-width: 200px;
+    }
+
+    #landing .cta-buttons button.join-btn {
+      background: var(--secondary);
+      color: white;
+    }
+
+    #landing .cta-buttons button.join-btn:hover {
+      background: #059669;
+    }
+
+    /* Feature Cards */
+    #landing .features {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 32px;
+      margin-bottom: 80px;
+      max-width: 1000px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    #landing .feature-card {
+      text-align: center;
+      padding: 32px 24px;
+    }
+
+    #landing .feature-icon {
+      width: 64px;
+      height: 64px;
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 20px;
+      font-size: 32px;
+    }
+
+    #landing .feature-icon.purple {
+      background: rgba(124, 58, 237, 0.2);
+      color: var(--primary);
+    }
+
+    #landing .feature-icon.green {
+      background: rgba(16, 185, 129, 0.2);
+      color: var(--secondary);
+    }
+
+    #landing .feature-icon.orange {
+      background: rgba(245, 158, 11, 0.2);
+      color: var(--accent);
+    }
+
+    #landing .feature-card h3 {
+      font-size: 20px;
+      margin-bottom: 12px;
+      color: var(--text);
+    }
+
+    #landing .feature-card p {
+      font-size: 14px;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+
+    /* Start Chatting Section */
+    #landing .start-section {
+      text-align: center;
+      margin-bottom: 60px;
+    }
+
+    #landing .start-section h2 {
+      font-size: 36px;
+      font-weight: 700;
+      margin-bottom: 16px;
+      color: var(--text);
+    }
+
+    #landing .start-section p {
+      font-size: 18px;
+      color: var(--text-muted);
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    /* Bottom CTA Cards */
+    #landing .action-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+      gap: 32px;
+      max-width: 900px;
+      margin: 0 auto 60px;
+    }
+
+    #landing .action-card {
+      background: var(--surface);
+      border-radius: 16px;
+      padding: 48px 40px;
+      text-align: center;
+      border: 1px solid var(--border);
+    }
+
+    #landing .action-card-icon {
+      width: 80px;
+      height: 80px;
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 24px;
+      font-size: 40px;
+    }
+
+    #landing .action-card-icon.purple {
+      background: rgba(124, 58, 237, 0.2);
+      color: var(--primary);
+    }
+
+    #landing .action-card-icon.green {
+      background: rgba(16, 185, 129, 0.2);
+      color: var(--secondary);
+    }
+
+    #landing .action-card h3 {
+      font-size: 24px;
+      margin-bottom: 16px;
+      color: var(--text);
+    }
+
+    #landing .action-card p {
+      font-size: 16px;
+      color: var(--text-muted);
+      margin-bottom: 32px;
+      line-height: 1.6;
+    }
+
+    #landing .action-card button {
+      padding: 14px 32px;
+      font-size: 16px;
+      font-weight: 600;
+    }
+
+    #landing .action-card button.join-btn {
+      background: var(--secondary);
+      color: white;
+    }
+
+    #landing .action-card button.join-btn:hover {
+      background: #059669;
+    }
+
+    /* Modals */
+    #solTopupModal,
+    #sdpModal {
+      position: fixed;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(8px);
+      z-index: 2000;
+      padding: 16px;
+    }
+    #solTopupModal.active,
+    #sdpModal.active {
+      display: flex;
+    }
+    .modal {
+      background: var(--surface);
+      color: var(--text);
+      padding: 32px;
+      border-radius: 16px;
+      max-width: 560px;
+      width: 100%;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+    .modal h3 {
+      margin-bottom: 16px;
+      font-size: 20px;
+    }
+    .modal .muted {
+      color: var(--text-muted);
+      font-size: 14px;
+      line-height: 20px;
+    }
+    .modal .walletAddr {
+      font-family: 'JetBrains Mono', monospace;
+      background: var(--background);
+      padding: 12px;
+      border-radius: 8px;
+      margin: 12px 0;
+      overflow-x: auto;
+      font-size: 13px;
+      border: 1px solid var(--border);
+    }
+    .modal .actions {
+      display: flex;
+      gap: 12px;
+      justify-content: flex-end;
+      margin-top: 24px;
+    }
+
+    /* Sections */
+    section {
+      width: 100%;
+      margin: 24px 0;
+    }
+    .section-card {
+      background: var(--surface);
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 24px;
+    }
+
+    /* Status Indicators */
+    .status-dot {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      margin-right: 6px;
+    }
+    .status-dot.connected {
+      background: var(--secondary);
+      box-shadow: 0 0 8px rgba(16, 185, 129, 0.5);
+    }
+    .status-dot.connecting {
+      background: var(--accent);
+      animation: pulse 2s infinite;
+    }
+    .status-dot.disconnected {
+      background: var(--danger);
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+    
+    /* Stage 7: Timer styles */
+    #callTimer {
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      transition: all 0.3s ease;
+    }
+    #callTimer[style*="animation: pulse"] {
+      box-shadow: 0 4px 20px rgba(245, 158, 11, 0.5);
+    }
+    
+    /* Stage 10: Notification styles */
+    #notification {
+      animation: slideInFromRight 0.3s ease;
+    }
+    
+    @keyframes slideInFromRight {
+      from {
+        opacity: 0;
+        transform: translateX(100%);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+    
+    /* Stage 10: Responsive improvements */
+    @media (max-width: 768px) {
+      #callTimer, #billingStatus {
+        font-size: 14px;
+        padding: 10px 12px;
+      }
+      #callTimer {
+        top: 8px;
+        left: 8px;
+        max-width: 160px;
+      }
+      #billingStatus {
+        top: 8px;
+        right: 8px;
+        max-width: 200px;
+      }
+      #notification {
+        bottom: 60px;
+        right: 8px;
+        left: 8px;
+        max-width: none;
+      }
+    }
+
+    /* Call Page */
+    #callPage {
+      width: 100%;
+      position: relative;
+    }
+    #callPage .video-container {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    #callPage .controls {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      padding: 16px;
+      background: rgba(31, 41, 55, 0.8);
+      backdrop-filter: blur(12px);
+      border-radius: 16px;
+      margin-top: 16px;
+    }
+    #callPage .controls button {
+      padding: 12px 20px;
+    }
+
+    /* Forms */
+    .form-group {
+      margin-bottom: 16px;
+    }
+    .form-row {
+      display: flex;
+      gap: 12px;
+      align-items: flex-end;
+    }
+    .form-row .form-group {
+      flex: 1;
+      margin-bottom: 0;
+    }
+
+    /* Info Cards */
+    .info-card {
+      background: var(--surface);
+      border: 1px solid rgba(124, 58, 237, 0.2);
+      border-radius: 8px;
+      padding: 16px;
+      margin: 12px 0;
+    }
+    .info-card.success {
+      background: rgba(16, 185, 129, 0.1);
+      border-color: rgba(16, 185, 129, 0.3);
+      color: var(--secondary);
+    }
+
+    /* Code/Monospace Elements */
+    code {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      background: var(--background);
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: var(--text);
+    }
+
+    /* Dividers */
+    hr {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 24px 0;
+      width: 100%;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .container {
+        padding: 12px;
+      }
+      header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+      }
+      #landing .card {
+        padding: 32px 24px;
+      }
+      .modal {
+        padding: 24px;
+      }
+      #landing .hero-section {
+        padding: 40px 20px 40px;
+      }
+      #landing .hero-section h1 {
+        font-size: 32px;
+      }
+      #landing .hero-section .tagline {
+        font-size: 16px;
+      }
+      #landing .cta-buttons {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      #landing .cta-buttons button {
+        width: 100%;
+      }
+      #landing .features {
+        grid-template-columns: 1fr;
+        gap: 24px;
+      }
+      #landing .action-cards {
+        grid-template-columns: 1fr;
+      }
+      #landing header nav {
+        flex-wrap: wrap;
+        font-size: 12px;
+      }
+      #landing header nav a {
+        margin-right: 12px;
+        margin-bottom: 8px;
+      }
+    }
+
+    /* Connection State */
+    #connState {
+      display: inline-flex;
+      align-items: center;
+      font-size: 14px;
+      color: var(--text-muted);
+    }
+  </style>
+</head>
+<body>
+  <!-- Stage 11: Consent Modal -->
+  <div id="consentModal" style="position: fixed; inset: 0; background: rgba(0, 0, 0, 0.95); z-index: 10000; display: none; align-items: center; justify-content: center; backdrop-filter: blur(12px); padding: 16px;">
+    <div style="background: var(--surface); border-radius: 16px; padding: 32px; max-width: 640px; width: 100%; margin: 0 auto; max-height: 90vh; overflow-y: auto; border: 2px solid var(--primary); box-shadow: 0 16px 48px rgba(0,0,0,0.5);">
+      <h1 style="margin-top: 0; color: var(--text); font-size: 28px; margin-bottom: 24px;">Welcome to PAY2CHAT</h1>
+      
+      <div style="margin-bottom: 24px; padding: 16px; background: rgba(124, 58, 237, 0.1); border-radius: 8px; border: 1px solid var(--primary);">
+        <h3 style="margin-top: 0; color: var(--primary); font-size: 16px; margin-bottom: 12px;">Important Information</h3>
+        <p style="color: var(--text-muted); margin-bottom: 0; font-size: 14px; line-height: 1.6;">
+          PAY2CHAT is a <strong>peer-to-peer</strong> video chat application. All calls, payments, and file transfers occur directly between users' browsers. 
+          We operate no servers, store no data, and have no access to your communications. Payments use Solana USDC with automatic per-minute billing. 
+          Transactions are irreversible once confirmed on the blockchain.
+        </p>
+      </div>
+
+      <div style="margin-bottom: 24px;">
+        <h3 style="color: var(--text); font-size: 18px; margin-bottom: 16px;">User Responsibilities</h3>
+        <ul style="color: var(--text-muted); padding-left: 24px; margin: 0;">
+          <li>You are solely responsible for all transactions and payments</li>
+          <li>You must maintain sufficient USDC balance for automatic billing</li>
+          <li>All payments are final and non-refundable</li>
+          <li>You are responsible for content you share and receive</li>
+          <li>You must comply with all applicable laws and regulations</li>
+        </ul>
+      </div>
+
+      <div style="margin-bottom: 24px; padding: 16px; background: var(--surface-light); border-radius: 8px; border: 1px solid var(--border);">
+        <label style="display: flex; align-items: flex-start; gap: 12px; cursor: pointer; margin-bottom: 16px;">
+          <input type="checkbox" id="consentAge" style="margin-top: 4px; width: 20px; height: 20px; cursor: pointer; flex-shrink: 0;" />
+          <span style="color: var(--text); font-size: 14px; line-height: 1.5;">I certify I am 18+.</span>
+        </label>
+        
+        <label style="display: flex; align-items: flex-start; gap: 12px; cursor: pointer; margin-bottom: 16px;">
+          <input type="checkbox" id="consentTOS" style="margin-top: 4px; width: 20px; height: 20px; cursor: pointer; flex-shrink: 0;" />
+          <span style="color: var(--text); font-size: 14px; line-height: 1.5;">I agree to the <a href="legal/tos.html" target="_blank" style="color: var(--primary); text-decoration: underline;">Terms of Service</a>.</span>
+        </label>
+        
+        <label style="display: flex; align-items: flex-start; gap: 12px; cursor: pointer; margin-bottom: 16px;">
+          <input type="checkbox" id="consentPP" style="margin-top: 4px; width: 20px; height: 20px; cursor: pointer; flex-shrink: 0;" />
+          <span style="color: var(--text); font-size: 14px; line-height: 1.5;">I agree to the <a href="legal/privacy.html" target="_blank" style="color: var(--primary); text-decoration: underline;">Privacy Policy</a>.</span>
+        </label>
+        
+        <label style="display: flex; align-items: flex-start; gap: 12px; cursor: pointer;">
+          <input type="checkbox" id="consentResponsibility" style="margin-top: 4px; width: 20px; height: 20px; cursor: pointer; flex-shrink: 0;" />
+          <span style="color: var(--text); font-size: 14px; line-height: 1.5;">I understand I am solely responsible for my use and transactions.</span>
+        </label>
+      </div>
+
+      <div style="display: flex; gap: 12px; justify-content: flex-end;">
+        <button id="consentContinueBtn" disabled style="padding: 12px 24px; font-size: 16px; font-weight: 600; background: var(--primary); color: white; border: none; border-radius: 8px; cursor: not-allowed; opacity: 0.5; transition: all 0.2s;">
+          Agree and Enter PAY2CHAT
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div id="landing">
+    <div class="landing-container">
+      <header style="margin-bottom: 40px;">
+        <div style="display: flex; align-items: center; justify-content: space-between;">
+          <div class="logo" style="font-size: 24px; font-weight: 700; color: var(--text);">X402 CHAT</div>
+          <nav>
+            <a href="#home" onclick="event.preventDefault();" id="navHomeLanding" style="color: var(--text-muted); text-decoration: none; margin-right: 24px; font-size: 14px;">Home</a>
+            <a href="#start" onclick="event.preventDefault();" style="color: var(--text-muted); text-decoration: none; margin-right: 24px; font-size: 14px;">Start Chat</a>
+            <a href="#join" onclick="event.preventDefault();" style="color: var(--text-muted); text-decoration: none; margin-right: 24px; font-size: 14px;">Join Chat</a>
+            <a href="#faq" onclick="event.preventDefault();" style="color: var(--text-muted); text-decoration: none; margin-right: 24px; font-size: 14px;">FAQ</a>
+            <a href="#privacy" onclick="event.preventDefault();" style="color: var(--text-muted); text-decoration: none; margin-right: 24px; font-size: 14px;">Privacy</a>
+            <a href="#terms" onclick="event.preventDefault();" style="color: var(--text-muted); text-decoration: none; font-size: 14px;">Terms</a>
+          </nav>
+        </div>
+      </header>
+
+      <div class="hero-section">
+        <h1>Private, peer-to-peer chat with simple, built-in crypto payments.</h1>
+        <p class="tagline">No apps. No signups. Just connect, talk, and pay — instantly.</p>
+        <div class="cta-buttons">
+          <button id="landingCreateBtn">Start New Chat</button>
+          <button id="landingJoinBtn" class="join-btn">Join Chat with Code</button>
+        </div>
+      </div>
+
+      <div class="features">
+        <div class="feature-card">
+          <div class="feature-icon purple">🔒</div>
+          <h3>Private & Secure</h3>
+          <p>End-to-end encrypted. Your media never touches our servers.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon green">⚡</div>
+          <h3>Instant Payment</h3>
+          <p>Built on Solana. Wallet-to-wallet transactions settle in seconds. No banks, no middlemen.</p>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon orange">✓</div>
+          <h3>Simple for Everyone</h3>
+          <p>Create or join a chat in one click. Pay or receive instantly using USDC.</p>
+        </div>
+      </div>
+
+      <div class="start-section">
+        <h2>Start Chatting Now</h2>
+        <p>Set a price or join a chat — payment happens automatically while you talk.</p>
+      </div>
+
+      <div class="action-cards">
+        <div class="action-card">
+          <div class="action-card-icon purple">🎥</div>
+          <h3>Create Private Chat</h3>
+          <p>Set your rate. Get paid instantly by the minute.</p>
+          <button id="landingCreateCardBtn">Create Chat</button>
+        </div>
+        <div class="action-card">
+          <div class="action-card-icon green">👤+</div>
+          <h3>Join Private Chat</h3>
+          <p>Chat Instantly. Pay Instantly. No Bank Required.</p>
+          <button id="landingJoinCardBtn" class="join-btn">Join Chat</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="container">
+    <header>
+      <div style="display: flex; align-items: center; gap: 24px;">
+        <div class="logo">X402 CHAT</div>
+        <nav>
+          <a href="#home" onclick="event.preventDefault();" id="navHome" style="color: var(--text-muted); text-decoration: none; margin-right: 24px; font-size: 14px;">Home</a>
+          <a href="#start" onclick="event.preventDefault();" id="navStart" style="color: var(--text-muted); text-decoration: none; margin-right: 24px; font-size: 14px;">Start Chat</a>
+          <a href="#join" onclick="event.preventDefault();" id="navJoin" style="color: var(--text-muted); text-decoration: none; margin-right: 24px; font-size: 14px;">Join Chat</a>
+          <a href="#faq" onclick="event.preventDefault();" id="navFaq" style="color: var(--text-muted); text-decoration: none; margin-right: 24px; font-size: 14px;">FAQ</a>
+          <a href="#privacy" onclick="event.preventDefault();" id="navPrivacy" style="color: var(--text-muted); text-decoration: none; margin-right: 24px; font-size: 14px;">Privacy</a>
+          <a href="#terms" onclick="event.preventDefault();" id="navTerms" style="color: var(--text-muted); text-decoration: none; font-size: 14px;">Terms</a>
+        </nav>
+      </div>
+      <div style="display: flex; gap: 12px; align-items: center;">
+        <span class="badge" id="solBadge">SOL: -</span>
+        <span class="badge" id="usdcBadge">USDC: -</span>
+      </div>
+    </header>
+  <!-- SOL top-up modal shown when wallet lacks SOL for fees -->
+  <div id="solTopupModal">
+    <div class="modal">
+      <h3>Insufficient SOL for transaction fees</h3>
+      <div class="muted">Your wallet needs a small amount of SOL to cover transaction fees and create token accounts. Please deposit SOL into your connected wallet and then re-check your balance.</div>
+      <div style="margin-top: 16px;">
+        <div style="margin-bottom: 8px;"><strong>Required minimum SOL:</strong> <span id="modalRequiredSol" style="font-family: 'JetBrains Mono', monospace;">0.0015</span> SOL</div>
+        <div><strong>Your current SOL:</strong> <span id="modalCurrentSol" style="font-family: 'JetBrains Mono', monospace;">-</span> SOL</div>
+      </div>
+      <div style="margin-top: 16px;">
+        <strong>Your wallet address:</strong>
+        <div class="walletAddr" id="modalWalletAddr"></div>
+      </div>
+      <div class="actions">
+        <button id="modalCloseBtn" class="secondary">Close</button>
+        <button id="modalRecheckBtn">Re-check balance</button>
+      </div>
+    </div>
+  </div>
+    <section id="homePage" class="section-card">
+      <h2 style="margin-bottom: 16px;">Start a Session</h2>
+      <div style="display: flex; gap: 12px; margin-bottom: 16px;">
+        <button id="homeCreateBtn">Create a Session</button>
+        <button id="homeJoinBtn" class="secondary">Join a Session</button>
+      </div>
+      <p>Platform: P2P video calls billed per-minute using Solana USDC. Hosts set rates; invitees prepay. Tips encouraged.</p>
+    </section>
+    <!-- Call page wrapper: hidden until navigating to 'call' -->
+    <div id="callPage" style="display:none; width:100%;">
+      <div class="video-container">
+        <video id="localVideo" autoplay playsinline muted></video>
+        <video id="remoteVideo" autoplay playsinline></video>
+      </div>
+      <div style="margin-bottom: 16px; display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
+        <button id="startBtn">Start Local Media</button>
+        <button id="createOfferBtn" style="display:none;">Create Offer</button>
+        <button id="createAnswerBtn" style="display:none;">Create Answer</button>
+        <button id="setRemoteBtn" style="display:none;" class="secondary">Set Remote SDP</button>
+      </div>
+      <div class="controls">
+        <button id="muteBtn" disabled>Mute</button>
+        <button id="cameraBtn" disabled>Camera Off</button>
+        <button id="endCallBtn" disabled class="danger">End Call</button>
+        <span id="connState"></span>
+      </div>
+    </div>
+    <!-- SDP modal (copy/paste flow) -->
+    <div id="sdpModal">
+      <div class="modal" style="max-width: 900px;">
+        <h3>Signaling (copy/paste)</h3>
+        <div style="display: flex; gap: 16px; margin-bottom: 16px;">
+          <div style="flex: 1;">
+            <label>Your SDP (copy and share with remote)</label>
+            <textarea id="localSDP" class="monospace" style="height: 200px; font-size: 12px; background: var(--background);"></textarea>
+            <div style="margin-top: 8px;">
+              <button id="copyLocalSdpBtn">Copy Local SDP</button>
+            </div>
+          </div>
+          <div style="flex: 1;">
+            <label>Remote SDP (paste here and click Accept)</label>
+            <textarea id="remoteSDP" class="monospace" style="height: 200px; font-size: 12px; background: var(--background);"></textarea>
+            <div style="margin-top: 8px;">
+              <button id="acceptRemoteSdpBtn">Accept Remote SDP</button>
+            </div>
+          </div>
+        </div>
+        <div class="actions">
+          <button id="closeSdpModal" class="secondary">Close</button>
+        </div>
+      </div>
+    </div>
+    <div style="display:none;">
+      <input id="dataMsg" placeholder="Message to send" />
+      <button id="sendDataBtn">Send DataChannel Msg</button>
+      <div id="dataLog" style="margin-top:8px; min-height:24px;"></div>
+    </div>
+    <div id="status" style="margin-top: 16px;"></div>
+    
+    <div class="section-card">
+      <h2>Stage 3: Wallet (Solana)</h2>
+      <div class="form-row" style="margin-top: 16px; flex-wrap: wrap;">
+        <div class="form-group" style="flex: 0 0 auto;">
+          <label for="clusterSelect">Cluster:</label>
+          <select id="clusterSelect" style="width: auto; min-width: 150px;">
+            <option value="mainnet">mainnet-beta</option>
+            <option value="devnet">devnet</option>
+          </select>
+        </div>
+        <div class="form-group" style="flex: 1; min-width: 200px;">
+          <label for="customRpc" style="display:none;">Custom RPC:</label>
+          <input id="customRpc" value="https://mainnet.helius-rpc.com/?api-key=87b803b7-48a2-446b-8661-233d33f9cc4d" placeholder="https://api.mainnet-beta.solana.com" style="display:none;" />
+        </div>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: flex-end;">
+          <button id="connectPhantomBtn">Connect Phantom</button>
+          <button id="connectSolflareBtn" class="secondary">Connect Solflare</button>
+          <button id="connectWCBtn" class="secondary">Connect (WalletConnect)</button>
+          <button id="disconnectWalletBtn" style="display:none;" class="secondary">Disconnect</button>
+          <button id="copyAddressBtn" style="display:none;" class="secondary">Copy Address</button>
+        </div>
+      </div>
+      <div style="margin-top: 8px;">
+        <span id="walletAddr" style="font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--text-muted);"></span>
+      </div>
+      <div style="margin-top: 16px;">
+        <div style="margin-bottom: 8px;">
+          <strong>USDC Balance:</strong> 
+          <span id="usdcBalance" style="font-family: 'JetBrains Mono', monospace; margin-left: 8px;">-</span>
+          <span id="walletError" style="color: var(--danger); margin-left: 12px;"></span>
+        </div>
+        <div id="walletNotes" class="info-card" style="margin-top: 12px; font-size: 13px;">MetaMask/EVM wallets are not enabled. Use Phantom or Solflare for Solana USDC. To use WalletConnect for Solana, include a Solana WalletConnect adapter or wallet-adapter integration.</div>
+        <div style="margin-top: 12px; font-size: 12px; color: var(--text-muted);">
+          Helius WebSocket: <code>wss://mainnet.helius-rpc.com/?api-key=87b803b7-48a2-446b-8661-233d33f9cc4d</code>
+        </div>
+      </div>
+      <hr />
+      <div style="margin-top: 24px;">
+        <h3>Stage 4: USDC Transfer Engine (Test)</h3>
+        <div class="form-row" style="margin-top: 16px;">
+          <div class="form-group">
+            <label for="txRecipient">Recipient wallet address</label>
+            <input id="txRecipient" placeholder="Recipient wallet address" class="monospace" />
+          </div>
+          <div class="form-group" style="flex: 0 0 150px;">
+            <label for="txAmount">Amount (USDC)</label>
+            <input id="txAmount" type="number" placeholder="Amount" class="monospace" />
+          </div>
+          <div style="display: flex; align-items: flex-end;">
+            <button id="sendUsdcBtn">Send USDC (test)</button>
+          </div>
+        </div>
+        <div id="txStatus" style="margin-top: 12px; color: var(--secondary); font-size: 14px;"></div>
+      </div>
+      <hr />
+      <div style="margin-top: 24px;">
+        <h3>Stage 5: Room & Prepay (Host / Invitee)</h3>
+        <div id="createPanel" style="display:none; margin-top: 16px;">
+          <div style="display: flex; flex-direction: column; gap: 16px;">
+            <div class="form-row" style="flex-wrap: wrap;">
+              <div class="form-group" style="flex: 0 0 180px;">
+                <label for="hostPrice">Host rate / min (USDC)</label>
+                <input id="hostPrice" type="number" placeholder="e.g. 1.00" class="monospace" />
+              </div>
+              <div class="form-group" style="flex: 0 0 200px;">
+                <label for="signalingUrl">Signaling URL</label>
+                <input id="signalingUrl" placeholder="ws://host:8888" class="monospace" value="ws://localhost:8888" />
+              </div>
+              <div class="form-group" style="flex: 0 0 140px;">
+                <label for="signalingRoom">Room Code</label>
+                <input id="signalingRoom" placeholder="ROOM123" class="monospace" style="text-transform: uppercase;" />
+              </div>
+              <div style="display: flex; align-items: flex-end; gap: 8px; flex-wrap: wrap;">
+                <button id="connectSignalingBtn" class="secondary">Connect Signaling</button>
+                <label style="display: flex; align-items: center; font-size: 13px; color: var(--text-muted); gap: 4px; padding: 8px;">
+                  <input type="checkbox" id="autoSendOffer" style="width: auto;" />
+                  Auto-send offer
+                </label>
+                <label style="display: flex; align-items: center; font-size: 13px; color: var(--text-muted); gap: 4px; padding: 8px;">
+                  <input type="checkbox" id="includeOfferCheckbox" style="width: auto;" />
+                  Include Offer in Link
+                </label>
+              </div>
+            </div>
+            <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+              <button id="createRoomBtn">Create Room (Host)</button>
+              <button id="createBeginBtn" class="secondary">Begin Session (Host)</button>
+              <span id="roomInfo" style="color: var(--secondary); font-size: 14px;"></span>
+              <button id="copyInviteBtn" style="display:none;" class="secondary">Copy Invite</button>
+            </div>
+          </div>
+          <div style="margin-top: 24px;">
+            <h4>Files for sale (Host)</h4>
+            <div class="form-row" style="margin-top: 12px;">
+              <div class="form-group">
+                <label for="fileNameInput">Filename or description</label>
+                <input id="fileNameInput" placeholder="Filename or description" />
+              </div>
+              <div class="form-group" style="flex: 0 0 150px;">
+                <label for="filePriceInput">Price (USDC)</label>
+                <input id="filePriceInput" type="number" placeholder="Price" class="monospace" />
+              </div>
+              <div style="display: flex; align-items: flex-end;">
+                <button id="addFileBtn">Add File for Sale</button>
+              </div>
+            </div>
+            <div id="fileList" style="margin-top: 12px; color: var(--text-muted); font-size: 14px;"></div>
+          </div>
+        </div>
+
+        <div id="joinPanel" style="display:none; margin-top: 16px;">
+          <div style="display: flex; flex-direction: column; gap: 16px;">
+            <div class="form-row">
+              <div class="form-group">
+                <label for="inviteCodeInput">Join Room (paste invite link or code)</label>
+                <input id="inviteCodeInput" placeholder="Invite link or code" class="monospace" />
+              </div>
+              <div style="display: flex; align-items: flex-end; gap: 8px;">
+                <button id="joinByCodeBtn">Join</button>
+                <button id="joinBeginBtn" class="secondary">Join Session</button>
+              </div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="joinHostAddr">Host address (parsed)</label>
+                <input id="joinHostAddr" placeholder="Host wallet address" class="monospace" />
+              </div>
+              <div class="form-group" style="flex: 0 0 150px;">
+                <label for="joinPrice">Price/min</label>
+                <input id="joinPrice" type="number" placeholder="Price/min" class="monospace" />
+              </div>
+              <div style="display: flex; align-items: flex-end;">
+                <button id="prepayBtn">Prepay 3 minutes</button>
+              </div>
+            </div>
+            <div id="prepayStatus" style="color: var(--secondary); font-size: 14px;"></div>
+            <div class="info-card success" style="margin-top: 12px; font-size: 13px;">Fees: invitee will prepay the initial N minutes (3 by default). Tips are encouraged — you can tip during or after the call.</div>
+            <div style="margin-top: 16px;">
+              <div class="form-row">
+                <div class="form-group" style="flex: 0 0 150px;">
+                  <label for="tipAmount">Tip amount (USDC)</label>
+                  <input id="tipAmount" type="number" placeholder="Amount" class="monospace" />
+                </div>
+                <div style="display: flex; align-items: flex-end;">
+                  <button id="tipBtn">Send Tip</button>
+                </div>
+              </div>
+              <div id="tipStatus" style="margin-top: 8px; color: var(--secondary); font-size: 14px;"></div>
+            </div>
+          </div>
+        </div>
+        <div id="homeNotice" style="margin-top: 16px; color: var(--text-muted); font-size: 13px;">Use Create Room to set price and generate invite link; use Join Room to paste invite link/code to join.</div>
+      </div>
+    </div>
+  </div>
+  <script src="https://unpkg.com/@solana/web3.js@1.73.0/lib/index.iife.min.js"></script>
+  <script src="https://unpkg.com/@solana/spl-token@0.3.7/lib/index.iife.min.js"></script>
+  <script src="https://unpkg.com/lz-string/libs/lz-string.min.js"></script>
+  <!-- Wallet Adapter CDN for WalletConnect and enhanced wallet support -->
+  <script src="https://unpkg.com/@solana/wallet-adapter-base@0.9.23/lib/index.iife.min.js"></script>
+  <script src="https://unpkg.com/@solana/wallet-adapter-wallets@0.19.26/lib/index.iife.min.js"></script>
+  <script src="https://unpkg.com/@solana/wallet-adapter-walletconnect@0.1.20/lib/index.iife.min.js"></script>
+  <script src="config.js"></script>
+  <script src="webrtc.js"></script>
+</body>
+</html>

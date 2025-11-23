@@ -1,0 +1,35 @@
+{
+  "name": "x402ProgressReporter",
+  "description": "After each pipeline stage, writes a concise progress summary to PROGRESS.md and logs/progress_<timestamp>.md.",
+  "includes": [
+    "**/*"
+  ],
+  "steps": [
+    {
+      "goal": "Initialize progress files.",
+      "instructions": [
+        "Create PROGRESS.md at repo root if missing.",
+        "Create logs/progress/ directory.",
+        "Add header with date/time and pipeline stage."
+      ]
+    },
+    {
+      "goal": "Summarize each stage.",
+      "instructions": [
+        "When TechAudit finishes, write: dependency map + env var map status.",
+        "When Fixer finishes, write: deps repaired + build status.",
+        "When SecScan finishes, write: risks found + patches applied.",
+        "When Refactorer finishes, write: structural changes + files rewritten.",
+        "When Finisher finishes, write: end-to-end test status + remaining TODOs."
+      ]
+    },
+    {
+      "goal": "Keep summaries ultra-readable.",
+      "instructions": [
+        "Use bullet lists with counts and exact file paths.",
+        "If a stage fails, include error stack and suggested next action.",
+        "Always append to PROGRESS.md rather than overwriting."
+      ]
+    }
+  ]
+}
