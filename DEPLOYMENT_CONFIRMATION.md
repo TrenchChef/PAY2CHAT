@@ -34,21 +34,37 @@
 
 ---
 
-## ⚠️ Frontend Deployment - NOT CONFIGURED
+## ✅ Frontend Deployment - VERCEL CONNECTED
 
-### Next.js Frontend Deployment Options
+### Next.js Frontend on Vercel
 
-The frontend is a Next.js application that needs to be deployed separately. Based on `DEPLOYMENT_GUIDE.md`, recommended options:
+**Status**: ✅ Vercel connected to repository
 
-### Option 1: Vercel (Recommended)
-- **Status**: Not configured
-- **Why**: Best Next.js support, automatic deployments
-- **Configuration Needed**:
-  - Connect GitHub repository to Vercel
-  - Set environment variables:
-    - `NEXT_PUBLIC_SIGNALING_URL=wss://your-railway-service.up.railway.app`
-    - `NEXT_PUBLIC_SOLANA_RPC_URL=https://api.mainnet-beta.solana.com`
-  - Vercel auto-detects Next.js and builds automatically
+**Configuration Status**:
+- ✅ Repository connected to Vercel
+- ✅ Next.js auto-detected by Vercel
+- ✅ Build configuration ready
+- ⚠️ **Environment variables needed** (see below)
+
+### Required Environment Variables
+
+Add these in Vercel Dashboard → Settings → Environment Variables:
+
+1. **`NEXT_PUBLIC_SIGNALING_URL`** (Required)
+   - Value: `wss://your-railway-service.up.railway.app`
+   - Get this from Railway dashboard after deploying Railway service
+   - Must use `wss://` protocol (secure WebSocket)
+
+2. **`NEXT_PUBLIC_SOLANA_RPC_URL`** (Optional but Recommended)
+   - Value: `https://api.mainnet-beta.solana.com`
+   - Or use custom RPC endpoint for better performance
+
+**How to Add**:
+1. Go to Vercel Dashboard → Your Project → Settings → Environment Variables
+2. Add each variable for Production, Preview, and Development
+3. Redeploy after adding variables
+
+See `VERCEL_SETUP.md` for detailed instructions.
 
 ### Option 2: Netlify
 - **Status**: Not configured
@@ -104,13 +120,14 @@ The frontend is a Next.js application that needs to be deployed separately. Base
 - [ ] **Get Railway public URL** (from Railway dashboard)
 - [ ] **Test WebSocket connection**
 
-### Vercel (Frontend) - Recommended ⚠️
-- [ ] Create Vercel account
-- [ ] Connect GitHub repository
-- [ ] Configure environment variables:
+### Vercel (Frontend) - ✅ Connected, ⚠️ Needs Env Vars
+- [x] Vercel account created
+- [x] Repository connected to Vercel
+- [x] Next.js auto-detected
+- [ ] **Add environment variables**:
   - [ ] `NEXT_PUBLIC_SIGNALING_URL` (from Railway)
-  - [ ] `NEXT_PUBLIC_SOLANA_RPC_URL`
-- [ ] Deploy (Vercel auto-detects Next.js)
+  - [ ] `NEXT_PUBLIC_SOLANA_RPC_URL` (optional)
+- [ ] Redeploy after adding env vars
 - [ ] Verify deployment works
 
 ### Alternative: Netlify (Frontend) ⚠️
@@ -183,9 +200,9 @@ After deployment, you'll need:
 | Platform | Component | Status | Action Required |
 |----------|-----------|--------|-----------------|
 | Railway | Signaling Server | ✅ Configured | Deploy in Railway dashboard |
-| Vercel | Frontend | ⚠️ Not Configured | Set up Vercel project |
-| Netlify | Frontend | ⚠️ Not Configured | Create netlify.toml + deploy |
-| GitHub Pages | Frontend | ⚠️ Not Configured | Add output: 'export' + deploy |
+| Vercel | Frontend | ✅ Connected | Add environment variables + redeploy |
+| Netlify | Frontend | ⚠️ Not Configured | Alternative option (not needed) |
+| GitHub Pages | Frontend | ⚠️ Not Configured | Alternative option (not needed) |
 
 ---
 
