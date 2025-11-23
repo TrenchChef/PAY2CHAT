@@ -8,11 +8,10 @@ import { encodeRoomToUrl } from '@/lib/utils/roomSharing';
 import { PublicKey } from '@solana/web3.js';
 
 export function HostLobby() {
-  // Ensure we're in the browser before using hooks
   const [mounted, setMounted] = useState(false);
+  const [roomId, setRoomId] = useState<string>('');
   const router = useRouter();
   const params = useParams();
-  const roomId = (params?.id as string) || '';
   const { currentRoom, setRoom } = useRoomStore();
   const [copied, setCopied] = useState<'code' | 'shareable' | null>(null);
   const [startingCall, setStartingCall] = useState(false);
@@ -20,18 +19,31 @@ export function HostLobby() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Ensure component is mounted (client-side only)
+  // Ensure component is mounted and get room ID safely
   useEffect(() => {
+    if (typeof window === 'undefined') return;
+    
     setMounted(true);
-  }, []);
+    
+    // Safely get room ID from params
+    try {
+      const id = (params?.id as string) || '';
+      setRoomId(id);
+      console.log('🔍 Room ID from params:', id);
+    } catch (e) {
+      console.error('❌ Failed to get room ID:', e);
+      setError('Failed to get room ID from URL');
+      setLoading(false);
+    }
+  }, [params]);
 
   // Load room - check store first, then localStorage
   useEffect(() => {
-    if (typeof window === 'undefined' || !mounted) return;
-    
-    if (!roomId) {
-      setError('No room ID provided');
-      setLoading(false);
+    if (!mounted || !roomId) {
+      if (mounted && !roomId) {
+        setError('No room ID provided');
+        setLoading(false);
+      }
       return;
     }
 
@@ -154,7 +166,7 @@ export function HostLobby() {
     return `${window.location.origin}/join?room=${room.id}&code=${room.joinCode}`;
   };
 
-  // Show loading message while mounting (prevents SSR issues)
+  // ALWAYS render something - never return null or blank
   if (!mounted) {
     return (
       <div className="max-w-4xl mx-auto flex flex-col items-center justify-center min-h-[400px]">
@@ -170,6 +182,7 @@ export function HostLobby() {
       <div className="max-w-4xl mx-auto flex flex-col items-center justify-center min-h-[400px]">
         <Spinner size="lg" />
         <p className="mt-4 text-text-muted">Loading room...</p>
+        <p className="mt-2 text-sm text-text-muted">Room ID: {roomId || 'N/A'}</p>
       </div>
     );
   }
