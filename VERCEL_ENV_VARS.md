@@ -6,6 +6,17 @@ If you see the message: **"A variable with the name `NEXT_PUBLIC_SIGNALING_URL` 
 
 This means the variable is already configured. Here's what to do:
 
+## About "Branch is undefined"
+
+If you see **"branch is undefined"** in Vercel environment variables:
+
+**This is CORRECT and NORMAL!** ✅
+
+- "undefined" means the variable is set for **all environments** (Production, Preview, Development)
+- This is the **recommended setup** for `NEXT_PUBLIC_*` variables
+- You don't need to change anything
+- The variable will work in all deployments
+
 ### Option 1: Update Existing Variable
 
 1. **Go to Vercel Dashboard** → Your Project → **Settings** → **Environment Variables**
