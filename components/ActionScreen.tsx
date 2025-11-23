@@ -34,15 +34,6 @@ export function ActionScreen() {
 
   return (
     <div className="max-w-4xl mx-auto">
-      <div className="text-center mb-12">
-        <h1 className="text-4xl font-bold mb-4">
-          Private P2P Video Chat with Crypto Payments
-        </h1>
-        <p className="text-text-muted text-lg">
-          Built on Solana. Wallet-to-wallet transactions settle in seconds.
-        </p>
-      </div>
-
       <div className="grid md:grid-cols-2 gap-6">
         <div id="create" className="bg-surface rounded-lg p-8 border border-border hover:border-primary transition-colors scroll-mt-20">
           <div className="text-4xl mb-4">🎥</div>

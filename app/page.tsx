@@ -5,9 +5,15 @@ import { ActionScreen } from '@/components/ActionScreen';
 import { NavBar } from '@/components/NavBar';
 import { Footer } from '@/components/Footer';
 import { useConsent } from '@/components/providers/ConsentProvider';
+import { useRouter } from 'next/navigation';
+import { useWallet } from '@solana/wallet-adapter-react';
+import { useWalletModal } from '@solana/wallet-adapter-react-ui';
 
 export default function Home() {
   const { consentGiven } = useConsent();
+  const router = useRouter();
+  const { publicKey } = useWallet();
+  const { setVisible } = useWalletModal();
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -140,6 +146,54 @@ export default function Home() {
                         Either party can end the call. View detailed receipts with minutes, tips, and file purchases.
                       </p>
                     </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            {/* Connect Now Section */}
+            <section id="connect-now" className="container mx-auto px-4 py-16">
+              <div className="max-w-4xl mx-auto text-center">
+                <h2 className="text-3xl font-bold mb-8">Connect Now</h2>
+                <div className="grid md:grid-cols-2 gap-6">
+                  <div className="bg-surface rounded-lg p-8 border border-border hover:border-primary transition-colors">
+                    <div className="text-4xl mb-4">🎥</div>
+                    <h3 className="text-2xl font-bold mb-2">Create Room</h3>
+                    <p className="text-text-muted mb-6">
+                      Set your rate. Get paid instantly by the minute.
+                    </p>
+                    <button
+                      onClick={() => {
+                        if (!publicKey) {
+                          setVisible(true);
+                          return;
+                        }
+                        router.push('/create');
+                      }}
+                      className="w-full py-3 bg-primary hover:bg-primary-hover text-white rounded-lg font-medium transition-colors"
+                    >
+                      Create Chat
+                    </button>
+                  </div>
+
+                  <div className="bg-surface rounded-lg p-8 border border-border hover:border-secondary transition-colors">
+                    <div className="text-4xl mb-4">👤+</div>
+                    <h3 className="text-2xl font-bold mb-2">Join Room</h3>
+                    <p className="text-text-muted mb-6">
+                      Chat Instantly. Pay Instantly. No Bank Required.
+                    </p>
+                    <button
+                      onClick={() => {
+                        if (!publicKey) {
+                          setVisible(true);
+                          return;
+                        }
+                        router.push('/join');
+                      }}
+                      className="w-full py-3 bg-secondary hover:bg-secondary/80 text-white rounded-lg font-medium transition-colors"
+                    >
+                      Join Chat
+                    </button>
                   </div>
                 </div>
               </div>
