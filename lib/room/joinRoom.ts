@@ -2,10 +2,17 @@ import { PublicKey } from '@solana/web3.js';
 import { Room } from '@/lib/store/useRoomStore';
 import { decodeRoomFromUrl } from '@/lib/utils/roomSharing';
 
+// Ensure this only runs in browser (not during build)
+const isBrowser = typeof window !== 'undefined';
+
 export async function joinRoom(
   input: string,
   inviteeWallet: PublicKey
 ): Promise<Room> {
+  // Early return if not in browser (prevents build-time execution)
+  if (!isBrowser) {
+    throw new Error('joinRoom can only be called in the browser');
+  }
   let roomId: string | null = null;
   let code: string | null = null;
   let encodedData: string | null = null;
