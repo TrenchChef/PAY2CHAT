@@ -45,14 +45,27 @@ export async function joinRoom(
           ? decoded.hostWallet.toString()
           : null;
       
-      if (!hostWalletString) {
+      // Validate hostWallet string is not empty and looks like a valid Solana address
+      if (!hostWalletString || hostWalletString.trim().length === 0) {
         throw new Error('Invalid room data: hostWallet is missing or invalid');
       }
 
+      // Validate it's a valid base58 string (basic check)
+      if (!/^[1-9A-HJ-NP-Za-km-z]+$/.test(hostWalletString)) {
+        throw new Error('Invalid room data: hostWallet contains invalid characters');
+      }
+
       // Reconstruct room object from decoded data
+      let hostWallet: PublicKey;
+      try {
+        hostWallet = new PublicKey(hostWalletString);
+      } catch (error) {
+        throw new Error('Invalid room data: hostWallet is not a valid Solana address');
+      }
+
       const room: Room = {
         id: decoded.id as string,
-        hostWallet: new PublicKey(hostWalletString),
+        hostWallet,
         config: {
           rate: decoded.rate as number,
           description: decoded.description as string || '',

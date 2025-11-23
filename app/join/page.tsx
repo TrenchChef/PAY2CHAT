@@ -4,6 +4,9 @@ import { Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { JoinRoomForm } from '@/components/JoinRoomForm';
 
+// Force dynamic rendering to prevent static generation errors
+export const dynamic = 'force-dynamic';
+
 function JoinPageContent() {
   const searchParams = useSearchParams();
   const roomId = searchParams.get('room');
