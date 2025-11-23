@@ -34,19 +34,34 @@ export async function joinRoom(
   if (encodedData) {
     const decodedRoom = decodeRoomFromUrl(encodedData);
     if (decodedRoom && decodedRoom.id) {
+      // The decoded room has a flat structure from encodeRoomToUrl
+      // Type assertion needed because decodeRoomFromUrl returns Partial<Room>
+      const decoded = decodedRoom as any;
+      
+      // Ensure hostWallet is a string (from encoded data it should be a string)
+      const hostWalletString = typeof decoded.hostWallet === 'string' 
+        ? decoded.hostWallet 
+        : decoded.hostWallet instanceof PublicKey 
+          ? decoded.hostWallet.toString()
+          : null;
+      
+      if (!hostWalletString) {
+        throw new Error('Invalid room data: hostWallet is missing or invalid');
+      }
+
       // Reconstruct room object from decoded data
       const room: Room = {
-        id: decodedRoom.id as string,
-        hostWallet: new PublicKey(decodedRoom.hostWallet as string),
+        id: decoded.id as string,
+        hostWallet: new PublicKey(hostWalletString),
         config: {
-          rate: decodedRoom.rate as number,
-          description: decodedRoom.description as string || '',
-          allowCamera: decodedRoom.allowCamera as boolean ?? true,
-          allowMic: decodedRoom.allowMic as boolean ?? true,
-          allowFilePurchasesDuringCall: decodedRoom.allowFilePurchases as boolean ?? false,
+          rate: decoded.rate as number,
+          description: decoded.description as string || '',
+          allowCamera: decoded.allowCamera as boolean ?? true,
+          allowMic: decoded.allowMic as boolean ?? true,
+          allowFilePurchasesDuringCall: decoded.allowFilePurchases as boolean ?? false,
           files: [], // Files not included in shareable data for size reasons
         },
-        joinCode: decodedRoom.code as string,
+        joinCode: decoded.code as string,
         url: input,
         createdAt: Date.now(),
       };
