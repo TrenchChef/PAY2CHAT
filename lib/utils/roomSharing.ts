@@ -1,18 +1,49 @@
 import { Room } from '@/lib/store/useRoomStore';
 
 /**
+ * Base64 encode (cross-platform: browser or Node.js)
+ */
+function base64Encode(str: string): string {
+  if (typeof window !== 'undefined') {
+    // Browser: use btoa
+    return btoa(str);
+  } else {
+    // Node.js: use Buffer
+    return Buffer.from(str, 'utf-8').toString('base64');
+  }
+}
+
+/**
+ * Base64 decode (cross-platform: browser or Node.js)
+ */
+function base64Decode(str: string): string {
+  if (typeof window !== 'undefined') {
+    // Browser: use atob
+    return atob(str);
+  } else {
+    // Node.js: use Buffer
+    return Buffer.from(str, 'base64').toString('utf-8');
+  }
+}
+
+/**
  * Encode room data into a shareable URL
  * Uses base64 encoding to include room configuration in URL
  */
 export function encodeRoomToUrl(room: Room, baseUrl?: string): string {
-  const origin = baseUrl || (typeof window !== 'undefined' ? window.location.origin : '');
+  // Only encode in browser - this function should not be called during SSR
+  if (typeof window === 'undefined') {
+    throw new Error('encodeRoomToUrl can only be called in the browser');
+  }
+
+  const origin = baseUrl || window.location.origin;
   
   // Create a shareable room data object (exclude sensitive data)
   const shareableData = {
     id: room.id,
     code: room.joinCode,
     rate: room.config.rate,
-    description: room.config.description,
+    description: room.config.description || '',
     allowCamera: room.config.allowCamera,
     allowMic: room.config.allowMic,
     allowFilePurchases: room.config.allowFilePurchasesDuringCall,
@@ -20,7 +51,7 @@ export function encodeRoomToUrl(room: Room, baseUrl?: string): string {
   };
 
   // Encode to base64
-  const encoded = btoa(JSON.stringify(shareableData));
+  const encoded = base64Encode(JSON.stringify(shareableData));
   
   // Use URL hash to avoid server-side issues
   return `${origin}/join?data=${encodeURIComponent(encoded)}`;
@@ -30,8 +61,13 @@ export function encodeRoomToUrl(room: Room, baseUrl?: string): string {
  * Decode room data from URL
  */
 export function decodeRoomFromUrl(data: string): Partial<Room> | null {
+  // Only decode in browser - this function should not be called during SSR
+  if (typeof window === 'undefined') {
+    return null;
+  }
+
   try {
-    const decoded = JSON.parse(atob(decodeURIComponent(data)));
+    const decoded = JSON.parse(base64Decode(decodeURIComponent(data)));
     return decoded;
   } catch (error) {
     console.error('Failed to decode room data:', error);
