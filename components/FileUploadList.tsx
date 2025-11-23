@@ -25,7 +25,7 @@ export function FileUploadList({ files, setFiles }: FileUploadListProps) {
       price: 20.0,
       visibleBeforeCall: false,
       purchasableDuringCall: true,
-      purchasableAfterCall: true,
+      purchasableAfterCall: false,
       encryptedBlob,
     };
 
@@ -86,18 +86,6 @@ export function FileUploadList({ files, setFiles }: FileUploadListProps) {
             <label className="flex items-center gap-2">
               <input
                 type="checkbox"
-                checked={file.visibleBeforeCall}
-                onChange={(e) =>
-                  updateFile(file.id, { visibleBeforeCall: e.target.checked })
-                }
-                className="w-4 h-4"
-              />
-              <span className="text-sm">Visible before call?</span>
-            </label>
-
-            <label className="flex items-center gap-2">
-              <input
-                type="checkbox"
                 checked={file.purchasableDuringCall}
                 onChange={(e) =>
                   updateFile(file.id, {
@@ -106,7 +94,7 @@ export function FileUploadList({ files, setFiles }: FileUploadListProps) {
                 }
                 className="w-4 h-4"
               />
-              <span className="text-sm">Purchasable only during/after call?</span>
+              <span className="text-sm">Purchasable during call</span>
             </label>
           </div>
         </div>

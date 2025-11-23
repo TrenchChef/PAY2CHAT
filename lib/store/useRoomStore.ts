@@ -18,8 +18,7 @@ export interface RoomConfig {
   description: string;
   allowCamera: boolean;
   allowMic: boolean;
-  allowScreenShare: boolean;
-  allowPreCallFilePurchases: boolean;
+  allowFilePurchasesDuringCall: boolean;
   files: FileMetadata[];
 }
 
