@@ -3,6 +3,11 @@
 import { ConnectWalletButton } from '@/components/ConnectWalletButton';
 import { PostCallHost } from '@/components/PostCallHost';
 
+// Required for static export with dynamic routes
+export function generateStaticParams() {
+  return []; // Empty array means routes will be handled client-side
+}
+
 export default function PostCallHostPage() {
   return (
     <div className="min-h-screen bg-background">
