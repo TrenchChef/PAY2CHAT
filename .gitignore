@@ -1,4 +1,18 @@
-.env
 node_modules/
 .DS_Store
 npm-debug.log
+
+# Playwright
+/test-results/
+/playwright-report/
+/playwright/.cache/
+
+# Next.js
+/.next/
+/out/
+/.env*.local
+/.vercel
+
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts
