@@ -698,7 +698,7 @@
 </head>
 <body>
   <!-- Stage 11: Consent Modal -->
-  <div id="consentModal" style="display: none; position: fixed; inset: 0; background: rgba(0, 0, 0, 0.95); z-index: 10000; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(12px);">
+  <div id="consentModal" style="position: fixed; inset: 0; background: rgba(0, 0, 0, 0.95); z-index: 10000; display: none; align-items: center; justify-content: center; backdrop-filter: blur(12px);">
     <div style="background: var(--surface); border-radius: 16px; padding: 32px; max-width: 640px; max-height: 90vh; overflow-y: auto; border: 2px solid var(--primary); box-shadow: 0 16px 48px rgba(0,0,0,0.5);">
       <h1 style="margin-top: 0; color: var(--text); font-size: 28px; margin-bottom: 24px;">Welcome to PAY2CHAT</h1>
       
@@ -821,9 +821,12 @@
       <div style="display: flex; align-items: center; gap: 24px;">
         <div class="logo">X402 CHAT</div>
         <nav>
-          <a href="#home" onclick="event.preventDefault();" id="navHome">Home</a>
-          <a href="#start" onclick="event.preventDefault();" id="navStart">Start Chat</a>
-          <a href="#join" onclick="event.preventDefault();" id="navJoin">Join Chat</a>
+          <a href="#home" onclick="event.preventDefault();" id="navHome" style="color: var(--text-muted); text-decoration: none; margin-right: 24px; font-size: 14px;">Home</a>
+          <a href="#start" onclick="event.preventDefault();" id="navStart" style="color: var(--text-muted); text-decoration: none; margin-right: 24px; font-size: 14px;">Start Chat</a>
+          <a href="#join" onclick="event.preventDefault();" id="navJoin" style="color: var(--text-muted); text-decoration: none; margin-right: 24px; font-size: 14px;">Join Chat</a>
+          <a href="#faq" onclick="event.preventDefault();" id="navFaq" style="color: var(--text-muted); text-decoration: none; margin-right: 24px; font-size: 14px;">FAQ</a>
+          <a href="#privacy" onclick="event.preventDefault();" id="navPrivacy" style="color: var(--text-muted); text-decoration: none; margin-right: 24px; font-size: 14px;">Privacy</a>
+          <a href="#terms" onclick="event.preventDefault();" id="navTerms" style="color: var(--text-muted); text-decoration: none; font-size: 14px;">Terms</a>
         </nav>
       </div>
       <div style="display: flex; gap: 12px; align-items: center;">
@@ -1067,6 +1070,10 @@
   <script src="https://unpkg.com/@solana/web3.js@1.73.0/lib/index.iife.min.js"></script>
   <script src="https://unpkg.com/@solana/spl-token@0.3.7/lib/index.iife.min.js"></script>
   <script src="https://unpkg.com/lz-string/libs/lz-string.min.js"></script>
+  <!-- Wallet Adapter CDN for WalletConnect and enhanced wallet support -->
+  <script src="https://unpkg.com/@solana/wallet-adapter-base@0.9.23/lib/index.iife.min.js"></script>
+  <script src="https://unpkg.com/@solana/wallet-adapter-wallets@0.19.26/lib/index.iife.min.js"></script>
+  <script src="https://unpkg.com/@solana/wallet-adapter-walletconnect@0.1.20/lib/index.iife.min.js"></script>
   <script src="config.js"></script>
   <script src="webrtc.js"></script>
 </body>
