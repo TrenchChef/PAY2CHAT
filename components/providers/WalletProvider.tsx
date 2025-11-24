@@ -8,6 +8,7 @@ import {
 import { WalletAdapterNetwork } from '@solana/wallet-adapter-base';
 import { WalletModalProvider } from '@solana/wallet-adapter-react-ui';
 import {
+  PhantomWalletAdapter,
   SolflareWalletAdapter,
 } from '@solana/wallet-adapter-wallets';
 import { clusterApiUrl } from '@solana/web3.js';
@@ -23,8 +24,8 @@ export function WalletProvider({ children }: WalletProviderProps) {
 
   const wallets = useMemo(
     () => [
+      new PhantomWalletAdapter(),
       new SolflareWalletAdapter(),
-      // Phantom is now auto-detected as a Standard Wallet, no adapter needed
       // BackpackWalletAdapter removed due to import issues - can be added later if needed
     ],
     []
