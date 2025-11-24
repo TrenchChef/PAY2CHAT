@@ -49,38 +49,49 @@ export function JoinRoomForm({ initialRoomId, initialCode }: JoinRoomFormProps) 
     }
   }, [publicKey, connecting, step, setVisible, hasAttemptedConnection]);
 
-  // Monitor wallet selection and trigger connection
-  // Use ref to track which wallet we're trying to connect to avoid duplicate attempts
+  // When wallet is selected from modal, ensure connection happens
+  // The wallet adapter modal should auto-connect, but we'll ensure it does
   useEffect(() => {
     if (!wallet || publicKey || connecting || !connect) return;
     
     const walletName = wallet.adapter.name;
     
-    // If we've already attempted connection for this wallet, don't try again
-    if (connectingRef.current === walletName && hasAttemptedConnection) {
+    // Prevent duplicate connection attempts
+    if (connectingRef.current === walletName) {
       return;
     }
     
-    console.log('🔌 [JoinRoom] Wallet selected, initiating connection:', walletName);
+    console.log('🔌 [JoinRoom] Wallet selected from modal, ensuring connection:', walletName);
     connectingRef.current = walletName;
     setHasAttemptedConnection(true);
     setConnectionError(null);
     
-    // Connect immediately - this should trigger wallet extension popup
-    connect()
-      .then(() => {
-        console.log('✅ [JoinRoom] Wallet connected successfully');
+    // The wallet adapter modal should have already triggered connection
+    // But if it hasn't, we'll trigger it here
+    // Use a small delay to let the modal's connection attempt complete first
+    const timer = setTimeout(async () => {
+      // Check if still not connected
+      if (!publicKey && !connecting && connect) {
+        console.log('🔌 [JoinRoom] Modal did not auto-connect, calling connect() manually');
+        try {
+          await connect();
+          console.log('✅ [JoinRoom] Manual connection successful');
+          setVisible(false);
+        } catch (error: any) {
+          console.error('❌ [JoinRoom] Manual connection failed:', error);
+          setConnectionError(error?.message || 'Failed to connect. Please try again.');
+          setHasAttemptedConnection(false);
+          connectingRef.current = null;
+        }
+      } else if (publicKey) {
+        console.log('✅ [JoinRoom] Wallet connected (modal handled it)');
         setVisible(false);
-        setConnectionError(null);
         connectingRef.current = null;
-      })
-      .catch((error: any) => {
-        console.error('❌ [JoinRoom] Wallet connection error:', error);
-        setConnectionError(error?.message || 'Failed to connect wallet. Please try again.');
-        setHasAttemptedConnection(false);
-        connectingRef.current = null;
-      });
-  }, [wallet, publicKey, connecting, connect, hasAttemptedConnection, setVisible]);
+      }
+    }, 100);
+    
+    return () => clearTimeout(timer);
+  }, [wallet, publicKey, connecting, connect, setVisible]);
 
   // Auto-advance to step 1 when wallet connects
   useEffect(() => {
