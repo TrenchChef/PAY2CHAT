@@ -185,8 +185,8 @@ export function CreateRoomForm() {
       // Small delay to ensure storage operations complete and state updates propagate
       await new Promise(resolve => setTimeout(resolve, 200));
 
-      console.log('🔀 Navigating to host lobby...');
-      router.push(`/room/${room.id}/host`);
+      console.log('🔀 Navigating to call UI...');
+      router.push(`/room/${room.id}/call`);
     } catch (error: any) {
       console.error('❌ Failed to create room:', error);
       const errorMessage = error?.message || 'Unknown error occurred';
