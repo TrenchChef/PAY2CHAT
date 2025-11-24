@@ -12,7 +12,7 @@ import { getUSDCBalance } from '@/lib/solana/wallet';
 
 export function CreateRoomForm() {
   const router = useRouter();
-  const { publicKey, connecting } = useWallet();
+  const { publicKey, connecting, wallet, connect, select, disconnect } = useWallet();
   const { setVisible } = useWalletModal();
   const { setRoom } = useRoomStore();
   const [step, setStep] = useState(0); // Start at step 0 (wallet connection)
@@ -25,6 +25,7 @@ export function CreateRoomForm() {
   const [balance, setBalance] = useState<number | null>(null);
   const [loadingBalance, setLoadingBalance] = useState(false);
   const [walletModalOpened, setWalletModalOpened] = useState(false);
+  const [connectionError, setConnectionError] = useState<string | null>(null);
 
   // Auto-open wallet modal when component mounts if wallet is not connected
   useEffect(() => {
@@ -32,6 +33,7 @@ export function CreateRoomForm() {
       // Small delay to ensure component is fully mounted
       const timer = setTimeout(() => {
         console.log('🔌 Auto-opening wallet connection modal...');
+        setConnectionError(null);
         setVisible(true);
         setWalletModalOpened(true);
       }, 300);
@@ -41,8 +43,32 @@ export function CreateRoomForm() {
     // Reset the flag if wallet connects successfully
     if (publicKey && walletModalOpened) {
       setWalletModalOpened(false);
+      setConnectionError(null);
     }
   }, [publicKey, connecting, step, walletModalOpened, setVisible]);
+
+  // Monitor wallet connection state and handle errors
+  useEffect(() => {
+    if (wallet && !publicKey && !connecting) {
+      // Wallet is selected but not connected - try to connect after a short delay
+      console.log('🔌 Wallet selected but not connected, attempting to connect...', wallet.adapter.name);
+      const timer = setTimeout(async () => {
+        if (connect && wallet && !publicKey && !connecting) {
+          try {
+            console.log('🔌 Calling connect() for wallet:', wallet.adapter.name);
+            await connect();
+            console.log('✅ Wallet connected successfully');
+            setConnectionError(null);
+          } catch (error: any) {
+            console.error('❌ Wallet connection error:', error);
+            setConnectionError(error?.message || 'Failed to connect wallet. Please try again or select a different wallet.');
+          }
+        }
+      }, 800); // Give wallet adapter time to initialize
+      
+      return () => clearTimeout(timer);
+    }
+  }, [wallet, publicKey, connecting, connect]);
 
   useEffect(() => {
     if (publicKey) {
@@ -64,10 +90,27 @@ export function CreateRoomForm() {
     }
   }, [publicKey]);
 
-  const handleConnectWallet = () => {
+  const handleConnectWallet = async () => {
     console.log('🔌 User manually clicked Connect Wallet');
-    setVisible(true);
-    setWalletModalOpened(true);
+    setConnectionError(null);
+    
+    // If wallet is already selected, try to connect directly
+    if (wallet && !publicKey && connect) {
+      try {
+        console.log('🔌 Connecting to selected wallet:', wallet.adapter.name);
+        await connect();
+      } catch (error: any) {
+        console.error('❌ Connection error:', error);
+        setConnectionError(error?.message || 'Failed to connect wallet. Please try selecting a wallet again.');
+        // Open modal as fallback
+        setVisible(true);
+        setWalletModalOpened(true);
+      }
+    } else {
+      // Open modal to select wallet
+      setVisible(true);
+      setWalletModalOpened(true);
+    }
   };
 
   const formatAddress = (address: string) => {
@@ -167,6 +210,16 @@ export function CreateRoomForm() {
                 ? 'Wallet connected! Click Continue to proceed.'
                 : 'Connect your Solana wallet to create a room and start earning. The wallet selection dialog should open automatically.'}
           </p>
+          {connectionError && (
+            <div className="p-3 bg-danger/10 border border-danger/20 rounded-lg text-danger text-sm">
+              {connectionError}
+            </div>
+          )}
+          {wallet && !publicKey && !connecting && (
+            <div className="p-3 bg-surface-light border border-border rounded-lg text-text-muted text-sm">
+              Wallet selected: {wallet.adapter.name}. Please confirm the connection in your wallet extension.
+            </div>
+          )}
           {publicKey ? (
             <div className="space-y-4">
               <div className="bg-background rounded p-4 border border-border">
