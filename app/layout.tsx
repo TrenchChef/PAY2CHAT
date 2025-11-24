@@ -1,9 +1,7 @@
 import type { Metadata } from 'next';
 import { Inter, JetBrains_Mono } from 'next/font/google';
 import './globals.css';
-import { WalletProvider } from '@/components/providers/WalletProvider';
-import { ConsentProvider } from '@/components/providers/ConsentProvider';
-import { ConsentModalWrapper } from '@/components/ConsentModalWrapper';
+import { ClientProviders } from '@/components/providers/ClientProviders';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 const jetbrainsMono = JetBrains_Mono({ subsets: ['latin'], variable: '--font-mono' });
@@ -21,12 +19,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${inter.variable} ${jetbrainsMono.variable}`}>
-        <ConsentProvider>
-          <WalletProvider>
-            <ConsentModalWrapper />
-            {children}
-          </WalletProvider>
-        </ConsentProvider>
+        <ClientProviders>
+          {children}
+        </ClientProviders>
       </body>
     </html>
   );
