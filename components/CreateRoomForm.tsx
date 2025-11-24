@@ -47,28 +47,36 @@ export function CreateRoomForm() {
     }
   }, [publicKey, connecting, step, walletModalOpened, setVisible]);
 
-  // Monitor wallet connection state and handle errors
+  // Monitor wallet connection state and handle connection after selection
   useEffect(() => {
-    if (wallet && !publicKey && !connecting) {
+    if (wallet && !publicKey && !connecting && step === 0) {
       // Wallet is selected but not connected - try to connect after a short delay
       console.log('🔌 Wallet selected but not connected, attempting to connect...', wallet.adapter.name);
       const timer = setTimeout(async () => {
-        if (connect && wallet && !publicKey && !connecting) {
+        // Double-check state hasn't changed
+        if (wallet && !publicKey && connect && step === 0) {
           try {
-            console.log('🔌 Calling connect() for wallet:', wallet.adapter.name);
+            console.log('🔌 Explicitly calling connect() for wallet:', wallet.adapter.name);
             await connect();
             console.log('✅ Wallet connected successfully');
             setConnectionError(null);
           } catch (error: any) {
             console.error('❌ Wallet connection error:', error);
-            setConnectionError(error?.message || 'Failed to connect wallet. Please try again or select a different wallet.');
+            const errorMsg = error?.message || 'Failed to connect wallet. Please try again or select a different wallet.';
+            setConnectionError(errorMsg);
+            // Keep modal open if connection fails
+            setTimeout(() => {
+              if (!publicKey) {
+                setVisible(true);
+              }
+            }, 1000);
           }
         }
-      }, 800); // Give wallet adapter time to initialize
+      }, 1000); // Give wallet adapter time to initialize after selection
       
       return () => clearTimeout(timer);
     }
-  }, [wallet, publicKey, connecting, connect]);
+  }, [wallet, publicKey, connecting, connect, step, setVisible]);
 
   useEffect(() => {
     if (publicKey) {
