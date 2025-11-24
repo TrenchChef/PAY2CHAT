@@ -71,14 +71,7 @@ export function JoinRoomForm({ initialRoomId, initialCode }: JoinRoomFormProps) 
     }
   }, [wallet, publicKey, connecting, connect, setVisible]);
 
-  // Close wallet modal when wallet connects
-  useEffect(() => {
-    if (publicKey) {
-      console.log('✅ [JoinRoom] Wallet connected, closing selector');
-      setShowWalletSelector(false);
-      setConnectionError(null);
-    }
-  }, [publicKey]);
+  // Close wallet modal when wallet connects (handled by setVisible(false) in connect effect above)
 
   // Auto-advance to step 1 when wallet connects
   useEffect(() => {
