@@ -172,6 +172,20 @@ export function HostLobby() {
     }
   }, [roomId, currentRoom?.id, setRoom, mounted]);
 
+  // Debug: Log current state periodically
+  useEffect(() => {
+    if (mounted && roomId) {
+      console.log('📊 HostLobby state:', {
+        mounted,
+        roomId,
+        loading,
+        error,
+        hasCurrentRoom: !!currentRoom,
+        currentRoomId: currentRoom?.id,
+      });
+    }
+  }, [mounted, roomId, loading, error, currentRoom]);
+
   // Generate shareable URL when room is available
   useEffect(() => {
     if (loading || !currentRoom || typeof window === 'undefined') {
@@ -179,7 +193,7 @@ export function HostLobby() {
     }
 
     // Always set a fallback URL first
-    const fallbackUrl = currentRoom.url || `${window.location.origin}/join?room=${currentRoom.id}&code=${currentRoom.joinCode}`;
+    const fallbackUrl = currentRoom?.url || (currentRoom?.id && currentRoom?.joinCode ? `${window.location.origin}/join?room=${currentRoom.id}&code=${currentRoom.joinCode}` : '');
     setShareableUrl(fallbackUrl);
 
     // Try to generate shareable URL
@@ -237,7 +251,7 @@ export function HostLobby() {
   }
 
   // Error state
-  if (error || !currentRoom) {
+  if (error || (!loading && !currentRoom)) {
     return (
       <div className="max-w-4xl mx-auto">
         <div className="bg-surface rounded-lg p-6 border border-border">
@@ -249,7 +263,12 @@ export function HostLobby() {
             <p className="text-sm text-text-muted">
               Room ID: <code className="bg-background px-2 py-1 rounded">{roomId || 'N/A'}</code>
             </p>
-            <div className="flex gap-4">
+            {error && (
+              <div className="mt-4 p-3 bg-background rounded border border-border">
+                <p className="text-xs font-mono text-text-muted break-all">{error}</p>
+              </div>
+            )}
+            <div className="flex gap-4 mt-4">
               <button
                 onClick={() => router.push('/')}
                 className="px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-lg font-medium transition-colors"
@@ -301,12 +320,12 @@ export function HostLobby() {
           <div className="flex gap-2">
             <input
               type="text"
-              value={currentRoom.joinCode || ''}
+              value={currentRoom?.joinCode || ''}
               readOnly
               className="flex-1 px-4 py-2 bg-background border border-border rounded-lg text-text font-mono text-2xl text-center font-bold"
             />
             <button
-              onClick={() => copyToClipboard(currentRoom.joinCode, 'code')}
+              onClick={() => copyToClipboard(currentRoom?.joinCode || '', 'code')}
               className="px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-lg font-medium transition-colors"
             >
               {copied === 'code' ? 'Copied!' : 'Copy'}
@@ -314,11 +333,11 @@ export function HostLobby() {
           </div>
         </div>
 
-        {currentRoom.config?.files && currentRoom.config.files.length > 0 && (
+        {currentRoom?.config?.files && currentRoom.config.files.length > 0 && (
           <div>
             <h2 className="text-xl font-bold mb-4">Files</h2>
             <div className="space-y-2">
-              {currentRoom.config.files.map((file) => (
+              {currentRoom?.config?.files?.map((file) => (
                 <div
                   key={file.id}
                   className="bg-background rounded p-3 border border-border flex justify-between items-center"

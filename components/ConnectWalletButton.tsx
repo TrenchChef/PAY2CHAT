@@ -33,8 +33,29 @@ export function ConnectWalletButton() {
     }
   }, [publicKey, wallet, setWallet, disconnectStore]);
 
-  const handleDisconnect = () => {
-    disconnect();
+  const handleDisconnect = async () => {
+    try {
+      console.log('🔌 Disconnecting wallet...');
+      
+      // Disconnect from the adapter first
+      if (disconnect) {
+        await disconnect().catch((err) => {
+          console.warn('⚠️ Disconnect error from adapter:', err);
+          // Continue with cleanup even if adapter disconnect fails
+        });
+      }
+      
+      // Clear the wallet store and balance
+      disconnectStore();
+      setBalance(null);
+      
+      console.log('✅ Wallet disconnected successfully');
+    } catch (error) {
+      console.error('❌ Error during wallet disconnect:', error);
+      // Always clear the store even if disconnect fails
+      disconnectStore();
+      setBalance(null);
+    }
   };
 
   const formatAddress = (address: string) => {
