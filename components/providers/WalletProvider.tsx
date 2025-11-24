@@ -173,6 +173,11 @@ export function WalletProvider({ children }: WalletProviderProps) {
       // Only add if it's loaded and mounted
       if (mounted && WalletConnectAdapter) {
         try {
+          // Detect if we're on mobile
+          const isMobile = typeof window !== 'undefined' && 
+            (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+             (window.innerWidth <= 768));
+
           const walletConnect = new WalletConnectAdapter({
             network,
             options: {
@@ -183,10 +188,14 @@ export function WalletProvider({ children }: WalletProviderProps) {
                 url: 'https://pay2chat.vercel.app',
                 icons: ['https://pay2chat.vercel.app/icon.svg'],
               },
+              // Enable mobile deep linking
+              mobileLinks: {
+                native: undefined, // Let WalletConnect auto-detect mobile wallets
+              },
             },
           });
           walletAdapters.push(walletConnect);
-          console.log('✅ WalletConnect adapter added');
+          console.log('✅ WalletConnect adapter added', { isMobile });
         } catch (error) {
           console.error('❌ Failed to initialize WalletConnect adapter:', error);
         }

@@ -49,11 +49,24 @@ export function JoinRoomForm({ initialRoomId, initialCode }: JoinRoomFormProps) 
 
   // CRITICAL: When wallet is selected from modal, immediately call connect()
   // This must happen synchronously to preserve user gesture chain for extension popups
+  // For WalletConnect on mobile, this also ensures deep linking works properly
   useEffect(() => {
     if (wallet && !publicKey && !connecting && connect) {
-      console.log('🔌 [JoinRoom] Wallet selected from modal, calling connect() IMMEDIATELY:', wallet.adapter.name);
+      const walletName = wallet.adapter.name;
+      const isWalletConnect = walletName === 'WalletConnect';
+      const isMobile = typeof window !== 'undefined' && 
+        (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+         (window.innerWidth <= 768));
+
+      console.log('🔌 [JoinRoom] Wallet selected from modal, calling connect() IMMEDIATELY:', {
+        wallet: walletName,
+        isWalletConnect,
+        isMobile,
+      });
+
       // Call connect() immediately - this is synchronous (promise resolves async)
       // This preserves the user gesture chain required for wallet extension popups
+      // For WalletConnect on mobile, this triggers the deep link to the wallet app
       connect()
         .then(() => {
           console.log('✅ [JoinRoom] Wallet connected successfully');
@@ -65,6 +78,10 @@ export function JoinRoomForm({ initialRoomId, initialCode }: JoinRoomFormProps) 
           let errorMsg = error?.message || 'Failed to connect. Please try again.';
           if (errorMsg.includes('rejected') || errorMsg.includes('User rejected')) {
             errorMsg = 'Connection cancelled. Please try again.';
+          }
+          // For WalletConnect on mobile, provide helpful error message
+          if (isWalletConnect && isMobile) {
+            errorMsg = 'Please approve the connection in your wallet app. If the app didn\'t open, try again.';
           }
           setConnectionError(errorMsg);
         });
