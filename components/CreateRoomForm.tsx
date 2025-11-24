@@ -216,23 +216,40 @@ export function CreateRoomForm() {
       setRoom(room, true);
 
       // Store room immediately before navigation to ensure it's available
-      // Also store in sessionStorage as backup
+      // Store to both sessionStorage and ensure localStorage is updated
       if (typeof window !== 'undefined') {
         try {
           const serializedRoom = {
             ...room,
             hostWallet: room.hostWallet.toString(),
           };
+          
+          // Store in sessionStorage for immediate access
           sessionStorage.setItem('current_room', JSON.stringify(serializedRoom));
           console.log('✅ Room stored in sessionStorage');
+          
+          // Ensure room is also in localStorage (createRoom should have done this, but ensure it)
+          try {
+            const roomsStr = localStorage.getItem('x402_rooms') || '[]';
+            const rooms = JSON.parse(roomsStr);
+            const roomExists = rooms.some((r: any) => r && r.id === room.id);
+            if (!roomExists) {
+              rooms.push(serializedRoom);
+              localStorage.setItem('x402_rooms', JSON.stringify(rooms));
+              console.log('✅ Room also stored in localStorage');
+            }
+          } catch (localStorageError) {
+            console.warn('⚠️ Failed to ensure room in localStorage:', localStorageError);
+            // Don't fail - sessionStorage should be enough
+          }
         } catch (e: any) {
           console.error('❌ Failed to store room in sessionStorage:', e);
           // Don't fail room creation if sessionStorage fails
         }
       }
 
-      // Small delay to ensure storage operations complete
-      await new Promise(resolve => setTimeout(resolve, 100));
+      // Small delay to ensure storage operations complete and state updates propagate
+      await new Promise(resolve => setTimeout(resolve, 200));
 
       console.log('🔀 Navigating to host lobby...');
       router.push(`/room/${room.id}/host`);

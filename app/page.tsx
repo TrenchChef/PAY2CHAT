@@ -28,8 +28,22 @@ export const fetchCache = 'force-no-store';
 function HomeContent() {
   const { consentGiven } = useConsent();
   const router = useRouter();
-  const { publicKey } = useWallet();
+  const { publicKey, connecting } = useWallet();
   const { setVisible } = useWalletModal();
+  const [pendingAction, setPendingAction] = useState<'create' | 'join' | null>(null);
+
+  // Auto-redirect to pending action when wallet connects
+  useEffect(() => {
+    if (publicKey && pendingAction && !connecting) {
+      console.log('✅ Wallet connected, redirecting to:', pendingAction);
+      if (pendingAction === 'create') {
+        router.push('/create');
+      } else if (pendingAction === 'join') {
+        router.push('/join');
+      }
+      setPendingAction(null);
+    }
+  }, [publicKey, pendingAction, connecting, router]);
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -179,6 +193,7 @@ function HomeContent() {
                     <button
                       onClick={() => {
                         if (!publicKey) {
+                          setPendingAction('create');
                           setVisible(true);
                           return;
                         }
@@ -199,6 +214,7 @@ function HomeContent() {
                     <button
                       onClick={() => {
                         if (!publicKey) {
+                          setPendingAction('join');
                           setVisible(true);
                           return;
                         }
