@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { useWalletModal } from '@solana/wallet-adapter-react-ui';
@@ -34,6 +34,7 @@ export function JoinRoomForm({ initialRoomId, initialCode }: JoinRoomFormProps) 
   const [prepaymentTxid, setPrepaymentTxid] = useState<string | null>(null);
   const [connectionError, setConnectionError] = useState<string | null>(null);
   const [hasAttemptedConnection, setHasAttemptedConnection] = useState(false);
+  const connectingRef = useRef<string | null>(null);
   const { prepayForCall, loading: paymentLoading } = usePayments();
 
   // Auto-open wallet modal when component mounts if wallet is not connected
@@ -48,44 +49,37 @@ export function JoinRoomForm({ initialRoomId, initialCode }: JoinRoomFormProps) 
     }
   }, [publicKey, connecting, step, setVisible, hasAttemptedConnection]);
 
-  // Handle wallet connection IMMEDIATELY after selection from modal
-  // CRITICAL: Must maintain user gesture chain for popup to open
+  // Monitor wallet selection and trigger connection
+  // Use ref to track which wallet we're trying to connect to avoid duplicate attempts
   useEffect(() => {
-    if (wallet && !publicKey && !connecting && connect && !hasAttemptedConnection) {
-      console.log('🔌 [JoinRoom] Wallet selected from modal:', wallet.adapter.name);
-      setHasAttemptedConnection(true);
-      setConnectionError(null);
-      
-      // CRITICAL FIX: Call connect() immediately in the same tick to maintain user gesture
-      // The wallet adapter's connect() method should trigger the extension popup
-      // We use a microtask to ensure it happens in the same event loop but after state updates
-      Promise.resolve().then(async () => {
-        try {
-          console.log('🔌 [JoinRoom] Calling connect() NOW - this MUST trigger wallet extension popup');
-          console.log('🔌 [JoinRoom] Wallet adapter name:', wallet.adapter.name);
-          
-          // Call connect() - this should immediately trigger the wallet extension popup
-          // Do NOT close modal first - let it stay open during connection
-          await connect();
-          console.log('✅ [JoinRoom] Wallet connected successfully');
-          
-          // Close modal after successful connection
-          setVisible(false);
-          setConnectionError(null);
-        } catch (error: any) {
-          console.error('❌ [JoinRoom] Wallet connection error:', error);
-          console.error('❌ [JoinRoom] Error details:', {
-            name: error?.name,
-            message: error?.message,
-            stack: error?.stack
-          });
-          const errorMsg = error?.message || 'Failed to connect wallet. Please try again or select a different wallet.';
-          setConnectionError(errorMsg);
-          setHasAttemptedConnection(false);
-          // Keep modal open on error so user can try again
-        }
-      });
+    if (!wallet || publicKey || connecting || !connect) return;
+    
+    const walletName = wallet.adapter.name;
+    
+    // If we've already attempted connection for this wallet, don't try again
+    if (connectingRef.current === walletName && hasAttemptedConnection) {
+      return;
     }
+    
+    console.log('🔌 [JoinRoom] Wallet selected, initiating connection:', walletName);
+    connectingRef.current = walletName;
+    setHasAttemptedConnection(true);
+    setConnectionError(null);
+    
+    // Connect immediately - this should trigger wallet extension popup
+    connect()
+      .then(() => {
+        console.log('✅ [JoinRoom] Wallet connected successfully');
+        setVisible(false);
+        setConnectionError(null);
+        connectingRef.current = null;
+      })
+      .catch((error: any) => {
+        console.error('❌ [JoinRoom] Wallet connection error:', error);
+        setConnectionError(error?.message || 'Failed to connect wallet. Please try again.');
+        setHasAttemptedConnection(false);
+        connectingRef.current = null;
+      });
   }, [wallet, publicKey, connecting, connect, hasAttemptedConnection, setVisible]);
 
   // Auto-advance to step 1 when wallet connects
