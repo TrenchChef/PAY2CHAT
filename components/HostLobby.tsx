@@ -240,13 +240,26 @@ export function HostLobby() {
     return `${window.location.origin}/join?room=${room.id}&code=${room.joinCode}`;
   };
 
+  // Debug logging
+  useEffect(() => {
+    console.log('🔍 HostLobby render state:', {
+      mounted,
+      roomId,
+      loading,
+      error,
+      hasCurrentRoom: !!currentRoom,
+      currentRoomId: currentRoom?.id,
+    });
+  }, [mounted, roomId, loading, error, currentRoom]);
+
   // ALWAYS render something - never return null or blank
   // Always render with visible content, even during loading
   if (!mounted) {
+    console.log('📄 HostLobby: Not mounted yet, showing loading');
     return (
       <div className="max-w-4xl mx-auto flex flex-col items-center justify-center min-h-[400px] py-8">
         <Spinner size="lg" />
-        <p className="mt-4 text-text">Please wait...</p>
+        <p className="mt-4 text-text" style={{ color: '#FFFFFF' }}>Please wait...</p>
       </div>
     );
   }
