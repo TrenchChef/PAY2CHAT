@@ -96,6 +96,7 @@ export function HostLobby() {
     }
 
     console.log('🔍 Loading room:', roomId, 'Current room in store:', currentRoom?.id);
+    console.log('🔍 SessionStorage check:', typeof window !== 'undefined' ? sessionStorage.getItem('current_room')?.substring(0, 50) : 'N/A');
 
     // First check if room is already in store (from same session)
     if (currentRoom && currentRoom.id === roomId) {
@@ -104,6 +105,9 @@ export function HostLobby() {
       setError(null);
       return;
     }
+
+    // CRITICAL: Check sessionStorage BEFORE checking store
+    // SessionStorage is more reliable after navigation because Zustand store might reset
 
     // Try sessionStorage first (most recent room)
     try {
