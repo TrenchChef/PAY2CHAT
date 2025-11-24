@@ -53,23 +53,73 @@ export function CreateRoomForm() {
     }
     
     console.log('🔌 Wallet selected, connecting:', walletName);
+    console.log('🔌 Wallet adapter state:', {
+      name: wallet.adapter.name,
+      connecting: connecting,
+      connected: !!publicKey
+    });
+    
     connectingRef.current = walletName;
     setHasAttemptedConnection(true);
     setConnectionError(null);
     
+    // Check if wallet extension is available
+    const checkWalletAvailable = () => {
+      if (walletName === 'Phantom' && typeof window !== 'undefined') {
+        return !!(window as any).solana?.isPhantom;
+      }
+      if (walletName === 'Solflare' && typeof window !== 'undefined') {
+        return !!(window as any).solflare;
+      }
+      return true; // Assume available for other wallets
+    };
+    
+    if (!checkWalletAvailable()) {
+      const errorMsg = `${walletName} extension not detected. Please install and refresh the page.`;
+      console.error('❌', errorMsg);
+      setConnectionError(errorMsg);
+      setHasAttemptedConnection(false);
+      connectingRef.current = null;
+      return;
+    }
+    
     // Call connect() immediately - this should trigger wallet extension popup
-    connect()
-      .then(() => {
-        console.log('✅ Wallet connected successfully');
-        setVisible(false);
-        connectingRef.current = null;
-      })
-      .catch((error: any) => {
-        console.error('❌ Wallet connection error:', error);
-        setConnectionError(error?.message || 'Failed to connect. Please try again.');
-        setHasAttemptedConnection(false);
-        connectingRef.current = null;
-      });
+    // Add a small delay to ensure wallet adapter is ready
+    const timer = setTimeout(() => {
+      connect()
+        .then(() => {
+          console.log('✅ Wallet connected successfully');
+          setVisible(false);
+          connectingRef.current = null;
+        })
+        .catch((error: any) => {
+          console.error('❌ Wallet connection error:', error);
+          console.error('❌ Error details:', {
+            name: error?.name,
+            message: error?.message,
+            code: error?.code,
+            stack: error?.stack
+          });
+          
+          // Provide user-friendly error message
+          let errorMsg = 'Failed to connect wallet. ';
+          if (error?.message?.includes('User rejected')) {
+            errorMsg = 'Connection rejected. Please try again and approve the connection.';
+          } else if (error?.message?.includes('timeout')) {
+            errorMsg = 'Connection timeout. Please try again.';
+          } else if (error?.message) {
+            errorMsg = error.message;
+          } else {
+            errorMsg += 'Please make sure your wallet extension is unlocked and try again.';
+          }
+          
+          setConnectionError(errorMsg);
+          setHasAttemptedConnection(false);
+          connectingRef.current = null;
+        });
+    }, 100);
+    
+    return () => clearTimeout(timer);
   }, [wallet, publicKey, connecting, connect, setVisible]);
 
   // Close modal when wallet connects
