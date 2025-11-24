@@ -1,0 +1,15 @@
+{
+  "next": "14.2.x",
+  "react": "18.3.x",
+  "zustand": "4.x",
+  "simple-peer": "9.x",
+  "@solana/web3.js": "1.95.x",
+  "@solana/wallet-adapter": "0.9x",
+  "@solana/spl-token": "0.3x",
+  "tailwindcss": "3.4.x",
+  "zod": "3.x",
+  "socket.io": "4.x",
+  "vitest": "1.x",
+  "playwright": "1.44.x"
+}
+
