@@ -61,40 +61,34 @@ export function JoinRoomForm({ initialRoomId, initialCode }: JoinRoomFormProps) 
       return;
     }
     
-    console.log('🔌 [JoinRoom] Wallet selected:', walletName);
+    console.log('🔌 [JoinRoom] Wallet selected, MUST call connect() to open popup:', walletName);
     connectingRef.current = walletName;
     setHasAttemptedConnection(true);
     setConnectionError(null);
     
-    // Use queueMicrotask to call connect() in the same event loop
-    // This preserves the user gesture chain better than direct call
-    queueMicrotask(() => {
-      console.log('🔌 [JoinRoom] Calling connect() - wallet extension popup should open now');
-      connect()
-        .then(() => {
-          console.log('✅ [JoinRoom] Wallet connected successfully');
-          setVisible(false);
-          connectingRef.current = null;
-        })
-        .catch((error: any) => {
-          console.error('❌ [JoinRoom] Wallet connection error:', error);
-          
-          // Provide user-friendly error message
-          let errorMsg = 'Failed to connect wallet. ';
-          if (error?.message?.includes('User rejected') || error?.message?.includes('rejected')) {
-            errorMsg = 'Connection rejected. Please try again and approve the connection.';
-          } else if (error?.message?.includes('timeout')) {
-            errorMsg = 'Connection timeout. Please try again.';
-          } else if (error?.message) {
-            errorMsg = error.message;
-          } else {
-            errorMsg += 'Please make sure your wallet extension is unlocked and try again.';
-          }
-          
-          setConnectionError(errorMsg);
-          setHasAttemptedConnection(false);
-          connectingRef.current = null;
-        });
+    // CRITICAL: We MUST call connect() - the modal doesn't always do it
+    // Call it in the next tick to ensure wallet adapter is ready
+    // But use requestAnimationFrame to maintain gesture chain as much as possible
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        console.log('🔌 [JoinRoom] Calling connect() now - popup MUST open');
+        connect()
+          .then(() => {
+            console.log('✅ [JoinRoom] Wallet connected successfully');
+            setVisible(false);
+            connectingRef.current = null;
+          })
+          .catch((error: any) => {
+            console.error('❌ [JoinRoom] Connection failed:', error);
+            let errorMsg = error?.message || 'Failed to connect. Please try again.';
+            if (errorMsg.includes('rejected')) {
+              errorMsg = 'Connection rejected. Please approve in your wallet.';
+            }
+            setConnectionError(errorMsg);
+            setHasAttemptedConnection(false);
+            connectingRef.current = null;
+          });
+      });
     });
   }, [wallet, publicKey, connecting, connect, setVisible]);
 
