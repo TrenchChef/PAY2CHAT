@@ -3,12 +3,18 @@
 import { ActionScreen } from '@/components/ActionScreen';
 import { NavBar } from '@/components/NavBar';
 import { Footer } from '@/components/Footer';
+import { useState, useEffect } from 'react';
 import { useConsent } from '@/components/providers/ConsentProvider';
 import { useRouter } from 'next/navigation';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { useWalletModal } from '@solana/wallet-adapter-react-ui';
 
-export default function Home() {
+// Force dynamic rendering to prevent static generation errors with client-only hooks
+export const dynamic = 'force-dynamic';
+export const dynamicParams = true;
+export const fetchCache = 'force-no-store';
+
+function HomeContent() {
   const { consentGiven } = useConsent();
   const router = useRouter();
   const { publicKey } = useWallet();
@@ -203,5 +209,27 @@ export default function Home() {
       )}
     </div>
   );
+}
+
+export default function Home() {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setMounted(true);
+    }
+  }, []);
+
+  if (!mounted) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-text-muted">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return <HomeContent />;
 }
 
