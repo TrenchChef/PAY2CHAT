@@ -12,7 +12,7 @@ import { getUSDCBalance } from '@/lib/solana/wallet';
 
 export function CreateRoomForm() {
   const router = useRouter();
-  const { publicKey, connecting, wallet, connect, select } = useWallet();
+  const { publicKey, connecting, wallet, connect, select, disconnect, disconnecting, connected } = useWallet();
   const { setVisible } = useWalletModal();
   const { setRoom } = useRoomStore();
   const [step, setStep] = useState(0); // Start at step 0 (wallet connection)
@@ -93,6 +93,18 @@ export function CreateRoomForm() {
     }
   }, [publicKey, setVisible]);
 
+  // COMPREHENSIVE WALLET STATE MONITORING
+  useEffect(() => {
+    console.log('🔍 WALLET STATE CHECK:', {
+      publicKey: publicKey?.toString() || 'null',
+      connecting,
+      disconnecting,
+      connected,
+      wallet: wallet?.adapter.name || 'none',
+      step
+    });
+  }, [publicKey, connecting, disconnecting, connected, wallet, step]);
+
   // Auto-advance to step 1 when wallet connects
   useEffect(() => {
     if (publicKey && step === 0) {
@@ -100,7 +112,10 @@ export function CreateRoomForm() {
       setStep(1);
     } else if (!publicKey && step !== 0) {
       // Reset to step 0 if wallet disconnects
+      console.log('⚠️ Wallet disconnected, resetting to step 0');
       setStep(0);
+      setHasAttemptedConnection(false);
+      connectingRef.current = null;
     }
   }, [publicKey, step]);
 
@@ -257,6 +272,10 @@ export function CreateRoomForm() {
                   <span className="text-sm text-text-muted">Wallet Address</span>
                   <span className="font-mono text-sm">{formatAddress(publicKey.toString())}</span>
                 </div>
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-sm text-text-muted">Wallet</span>
+                  <span className="text-sm">{wallet?.adapter.name || 'Unknown'}</span>
+                </div>
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-text-muted">USDC Balance</span>
                   <span className="font-mono text-sm">
@@ -264,6 +283,21 @@ export function CreateRoomForm() {
                   </span>
                 </div>
               </div>
+              {disconnect && (
+                <button
+                  onClick={async () => {
+                    try {
+                      await disconnect();
+                      console.log('✅ Wallet disconnected');
+                    } catch (error) {
+                      console.error('❌ Disconnect error:', error);
+                    }
+                  }}
+                  className="w-full py-2 text-sm text-text-muted hover:text-text underline"
+                >
+                  Disconnect Wallet
+                </button>
+              )}
               <button
                 onClick={() => setStep(1)}
                 className="w-full py-3 bg-primary hover:bg-primary-hover text-white rounded-lg font-medium transition-colors"
