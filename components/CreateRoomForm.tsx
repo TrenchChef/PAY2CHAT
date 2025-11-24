@@ -25,10 +25,12 @@ export function CreateRoomForm() {
   const [balance, setBalance] = useState<number | null>(null);
   const [loadingBalance, setLoadingBalance] = useState(false);
   const [connectionError, setConnectionError] = useState<string | null>(null);
+  const [hasAttemptedConnection, setHasAttemptedConnection] = useState(false);
+  const connectionAttemptRef = useRef<string | null>(null);
 
   // Auto-open wallet modal when component mounts if wallet is not connected
   useEffect(() => {
-    if (!publicKey && !connecting && step === 0) {
+    if (!publicKey && !connecting && step === 0 && !hasAttemptedConnection) {
       const timer = setTimeout(() => {
         console.log('🔌 Auto-opening wallet modal...');
         setConnectionError(null);
@@ -36,14 +38,21 @@ export function CreateRoomForm() {
       }, 300);
       return () => clearTimeout(timer);
     }
-  }, [publicKey, connecting, step, setVisible]);
+  }, [publicKey, connecting, step, setVisible, hasAttemptedConnection]);
 
   // CRITICAL: When wallet is selected from modal, immediately call connect()
   // This must happen synchronously to preserve user gesture chain for extension popups
   // For WalletConnect on mobile, this also ensures deep linking works properly
   useEffect(() => {
-    if (wallet && !publicKey && !connecting && connect) {
+    if (wallet && !publicKey && !connecting && connect && step === 0) {
       const walletName = wallet.adapter.name;
+      
+      // Prevent infinite retry loop: only attempt connection once per wallet selection
+      // If connection fails, user must manually retry (prevents spam)
+      if (connectionAttemptRef.current === walletName) {
+        return; // Already attempted connection for this wallet
+      }
+
       const isWalletConnect = walletName === 'WalletConnect';
       const isMobile = typeof window !== 'undefined' && 
         (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
@@ -55,6 +64,10 @@ export function CreateRoomForm() {
         isMobile,
       });
 
+      // Mark that we're attempting connection for this wallet
+      connectionAttemptRef.current = walletName;
+      setHasAttemptedConnection(true);
+
       // Call connect() immediately - this is synchronous (promise resolves async)
       // This preserves the user gesture chain required for wallet extension popups
       // For WalletConnect on mobile, this triggers the deep link to the wallet app
@@ -63,21 +76,38 @@ export function CreateRoomForm() {
           console.log('✅ Wallet connected successfully');
           setVisible(false);
           setConnectionError(null);
+          connectionAttemptRef.current = null; // Reset on success
+          setHasAttemptedConnection(false);
         })
         .catch((error: any) => {
           console.error('❌ Connection failed:', error);
           let errorMsg = error?.message || 'Failed to connect. Please try again.';
           if (errorMsg.includes('rejected') || errorMsg.includes('User rejected')) {
             errorMsg = 'Connection cancelled. Please try again.';
+            // Reset on user rejection so they can try again
+            connectionAttemptRef.current = null;
+            setHasAttemptedConnection(false);
           }
           // For WalletConnect on mobile, provide helpful error message
           if (isWalletConnect && isMobile) {
             errorMsg = 'Please approve the connection in your wallet app. If the app didn\'t open, try again.';
           }
           setConnectionError(errorMsg);
+          // Don't reset connectionAttemptRef on error - user must manually retry
+          // This prevents infinite retry loop
         });
     }
-  }, [wallet, publicKey, connecting, connect, setVisible]);
+  }, [wallet, publicKey, connecting, connect, setVisible, step]);
+
+  // Reset connection attempt tracking when wallet changes or disconnects
+  useEffect(() => {
+    if (!wallet || publicKey) {
+      connectionAttemptRef.current = null;
+      if (publicKey) {
+        setHasAttemptedConnection(false);
+      }
+    }
+  }, [wallet, publicKey]);
 
   // COMPREHENSIVE WALLET STATE MONITORING
   useEffect(() => {

@@ -204,7 +204,10 @@ export function WalletProvider({ children }: WalletProviderProps) {
       console.log(`🎯 Total wallets initialized: ${walletAdapters.length}`);
       return walletAdapters;
     },
-    [network, mounted, WalletConnectAdapter, detectedExtensions]
+    [network, mounted, WalletConnectAdapter]
+    // Note: detectedExtensions is NOT in dependencies because we call detectWalletExtensions()
+    // independently inside the memoized function. Including it would cause unnecessary
+    // recreation every 3 seconds when the state updates, even though we don't use the state value.
   );
 
   return (
