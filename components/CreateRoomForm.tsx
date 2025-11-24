@@ -24,6 +24,25 @@ export function CreateRoomForm() {
   const [loading, setLoading] = useState(false);
   const [balance, setBalance] = useState<number | null>(null);
   const [loadingBalance, setLoadingBalance] = useState(false);
+  const [walletModalOpened, setWalletModalOpened] = useState(false);
+
+  // Auto-open wallet modal when component mounts if wallet is not connected
+  useEffect(() => {
+    if (!publicKey && !connecting && step === 0 && !walletModalOpened) {
+      // Small delay to ensure component is fully mounted
+      const timer = setTimeout(() => {
+        console.log('🔌 Auto-opening wallet connection modal...');
+        setVisible(true);
+        setWalletModalOpened(true);
+      }, 300);
+      return () => clearTimeout(timer);
+    }
+    
+    // Reset the flag if wallet connects successfully
+    if (publicKey && walletModalOpened) {
+      setWalletModalOpened(false);
+    }
+  }, [publicKey, connecting, step, walletModalOpened, setVisible]);
 
   useEffect(() => {
     if (publicKey) {
@@ -46,7 +65,9 @@ export function CreateRoomForm() {
   }, [publicKey]);
 
   const handleConnectWallet = () => {
+    console.log('🔌 User manually clicked Connect Wallet');
     setVisible(true);
+    setWalletModalOpened(true);
   };
 
   const formatAddress = (address: string) => {
@@ -140,7 +161,11 @@ export function CreateRoomForm() {
         <div className="bg-surface rounded-lg p-6 border border-border space-y-6">
           <h2 className="text-xl font-bold">Connect Wallet</h2>
           <p className="text-text-muted">
-            Connect your Solana wallet to create a room and start earning.
+            {connecting 
+              ? 'Please confirm the wallet connection in your wallet extension.'
+              : publicKey 
+                ? 'Wallet connected! Click Continue to proceed.'
+                : 'Connect your Solana wallet to create a room and start earning. The wallet selection dialog should open automatically.'}
           </p>
           {publicKey ? (
             <div className="space-y-4">
