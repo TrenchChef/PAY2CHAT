@@ -9,7 +9,6 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 export const dynamic = 'force-dynamic';
 export const dynamicParams = true;
 export const revalidate = 0;
-export const runtime = 'nodejs';
 export const fetchCache = 'force-no-store';
 
 export default function HostLobbyPage() {
@@ -23,25 +22,24 @@ export default function HostLobbyPage() {
   }, []);
 
   // Always show something - never blank
-  if (!mounted) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <Spinner size="lg" />
-          <p className="mt-4 text-text-muted">Please wait...</p>
-        </div>
-      </div>
-    );
-  }
-
+  // Render immediately with minimal content, then show full UI when mounted
   return (
-    <ErrorBoundary>
-      <div className="min-h-screen bg-background">
-        <main className="container mx-auto px-4 py-8">
-          <HostLobby />
-        </main>
-      </div>
-    </ErrorBoundary>
+    <div className="min-h-screen bg-background">
+      <ErrorBoundary>
+        {!mounted ? (
+          <div className="min-h-screen flex items-center justify-center">
+            <div className="text-center">
+              <Spinner size="lg" />
+              <p className="mt-4 text-text-muted">Loading...</p>
+            </div>
+          </div>
+        ) : (
+          <main className="container mx-auto px-4 py-8">
+            <HostLobby />
+          </main>
+        )}
+      </ErrorBoundary>
+    </div>
   );
 }
 

@@ -8,9 +8,10 @@ import { encodeRoomToUrl } from '@/lib/utils/roomSharing';
 import { PublicKey } from '@solana/web3.js';
 
 export function HostLobby() {
-  const [mounted, setMounted] = useState(false);
-  const [roomId, setRoomId] = useState<string>('');
+  const params = useParams();
   const router = useRouter();
+  const [mounted, setMounted] = useState(false);
+  const roomIdFromParams = params?.id as string;
   const { currentRoom, setRoom } = useRoomStore();
   const [copied, setCopied] = useState<'code' | 'shareable' | null>(null);
   const [startingCall, setStartingCall] = useState(false);
@@ -18,37 +19,47 @@ export function HostLobby() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Ensure component is mounted and get room ID safely - delay useParams until mounted
+  // Get room ID - prefer useParams, fallback to pathname
+  const roomId = roomIdFromParams || (typeof window !== 'undefined' ? 
+    window.location.pathname.match(/\/room\/([^/]+)\/host/)?.[1] || '' : '');
+
+  // Ensure component is mounted
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-    
-    setMounted(true);
-    
-    // Get room ID from URL pathname instead of useParams to avoid SSR issues
-    try {
-      const pathname = window.location.pathname;
-      const match = pathname.match(/\/room\/([^/]+)\/host/);
-      const id = match ? match[1] : '';
-      setRoomId(id);
-      console.log('🔍 Room ID from URL:', id);
-      
-      if (!id) {
-        setError('No room ID found in URL');
-        setLoading(false);
-      }
-    } catch (e) {
-      console.error('❌ Failed to get room ID:', e);
-      setError('Failed to get room ID from URL');
-      setLoading(false);
+    if (typeof window !== 'undefined') {
+      setMounted(true);
     }
   }, []);
+
+  // Validate room ID when mounted
+  useEffect(() => {
+    if (mounted && !roomId) {
+      console.error('❌ No room ID found in URL');
+      setError('No room ID found in URL');
+      setLoading(false);
+    }
+  }, [mounted, roomId]);
+
+  // Add timeout to prevent infinite loading
+  useEffect(() => {
+    if (!loading) return;
+    
+    const timeout = setTimeout(() => {
+      if (loading && !currentRoom && !error) {
+        console.warn('⚠️ Loading timeout - room not found after 5 seconds');
+        setError('Room loading timed out. The room may not exist or may have expired.');
+        setLoading(false);
+      }
+    }, 5000);
+    
+    return () => clearTimeout(timeout);
+  }, [loading, currentRoom, error]);
 
   // Load room - check store first, then localStorage
   useEffect(() => {
     if (!mounted || !roomId) {
       if (mounted && !roomId) {
         console.error('❌ No room ID provided in URL');
-        setError('No room ID provided');
+        setError('No room ID provided in URL');
         setLoading(false);
       }
       return;
@@ -230,38 +241,39 @@ export function HostLobby() {
   };
 
   // ALWAYS render something - never return null or blank
+  // Always render with visible content, even during loading
   if (!mounted) {
     return (
-      <div className="max-w-4xl mx-auto flex flex-col items-center justify-center min-h-[400px]">
+      <div className="max-w-4xl mx-auto flex flex-col items-center justify-center min-h-[400px] py-8">
         <Spinner size="lg" />
-        <p className="mt-4 text-text-muted">Please wait...</p>
+        <p className="mt-4 text-text">Please wait...</p>
       </div>
     );
   }
 
-  // Loading state
+  // Loading state - show even if roomId is missing
   if (loading) {
     return (
-      <div className="max-w-4xl mx-auto flex flex-col items-center justify-center min-h-[400px]">
+      <div className="max-w-4xl mx-auto flex flex-col items-center justify-center min-h-[400px] py-8">
         <Spinner size="lg" />
-        <p className="mt-4 text-text-muted">Loading room...</p>
-        <p className="mt-2 text-sm text-text-muted">Room ID: {roomId || 'N/A'}</p>
+        <p className="mt-4 text-text">Loading room...</p>
+        <p className="mt-2 text-sm text-text-muted">Room ID: {roomId || 'Reading from URL...'}</p>
       </div>
     );
   }
 
-  // Error state
+  // Error state or no room found
   if (error || (!loading && !currentRoom)) {
     return (
-      <div className="max-w-4xl mx-auto">
+      <div className="max-w-4xl mx-auto py-8">
         <div className="bg-surface rounded-lg p-6 border border-border">
           <h2 className="text-xl font-bold mb-4 text-danger">Room Not Found</h2>
-          <p className="text-text-muted mb-4">
+          <p className="text-text mb-4">
             {error || 'The room you\'re looking for could not be found.'}
           </p>
           <div className="space-y-2">
             <p className="text-sm text-text-muted">
-              Room ID: <code className="bg-background px-2 py-1 rounded">{roomId || 'N/A'}</code>
+              Room ID: <code className="bg-background px-2 py-1 rounded text-text">{roomId || 'N/A'}</code>
             </p>
             {error && (
               <div className="mt-4 p-3 bg-background rounded border border-border">
@@ -289,9 +301,29 @@ export function HostLobby() {
   }
 
   // Success state - show room UI
+  // Ensure we always have a room before rendering (safety check)
+  if (!currentRoom) {
+    return (
+      <div className="max-w-4xl mx-auto py-8">
+        <div className="bg-surface rounded-lg p-6 border border-border">
+          <h2 className="text-xl font-bold mb-4 text-danger">Room Not Available</h2>
+          <p className="text-text mb-4">
+            Room data is not available. Please create a new room.
+          </p>
+          <button
+            onClick={() => router.push('/create')}
+            className="px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-lg font-medium transition-colors"
+          >
+            Create New Room
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="max-w-4xl mx-auto">
-      <h1 className="text-3xl font-bold mb-8">Host Lobby</h1>
+    <div className="max-w-4xl mx-auto py-8">
+      <h1 className="text-3xl font-bold mb-8 text-text">Host Lobby</h1>
 
       <div className="bg-surface rounded-lg p-6 border border-border space-y-6">
         <div>
