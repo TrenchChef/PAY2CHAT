@@ -40,8 +40,8 @@ export function CreateRoomForm() {
     }
   }, [publicKey, connecting, step, setVisible, hasAttemptedConnection]);
 
-  // When wallet is selected from modal, we MUST call connect() to trigger popup
-  // The modal selects the wallet but doesn't always auto-connect
+  // When wallet is selected from modal, call connect() immediately to preserve user gesture
+  // Using queueMicrotask to preserve the gesture chain while ensuring wallet adapter is ready
   useEffect(() => {
     if (!wallet || publicKey || connecting || !connect) return;
     
@@ -52,34 +52,31 @@ export function CreateRoomForm() {
       return;
     }
     
-    console.log('🔌 Wallet selected, MUST call connect() to open popup:', walletName);
+    console.log('🔌 Wallet selected, calling connect() immediately:', walletName);
     connectingRef.current = walletName;
     setHasAttemptedConnection(true);
     setConnectionError(null);
     
-    // CRITICAL: We MUST call connect() - the modal doesn't always do it
-    // Call it in the next tick to ensure wallet adapter is ready
-    // But use requestAnimationFrame to maintain gesture chain as much as possible
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        console.log('🔌 Calling connect() now - popup MUST open');
-        connect()
-          .then(() => {
-            console.log('✅ Wallet connected successfully');
-            setVisible(false);
-            connectingRef.current = null;
-          })
-          .catch((error: any) => {
-            console.error('❌ Connection failed:', error);
-            let errorMsg = error?.message || 'Failed to connect. Please try again.';
-            if (errorMsg.includes('rejected')) {
-              errorMsg = 'Connection rejected. Please approve in your wallet.';
-            }
-            setConnectionError(errorMsg);
-            setHasAttemptedConnection(false);
-            connectingRef.current = null;
-          });
-      });
+    // CRITICAL: Call connect() immediately using queueMicrotask to preserve user gesture chain
+    // This is faster than requestAnimationFrame and maintains the gesture context
+    queueMicrotask(() => {
+      console.log('🔌 Calling connect() - popup should open now');
+      connect()
+        .then(() => {
+          console.log('✅ Wallet connected successfully');
+          setVisible(false);
+          connectingRef.current = null;
+        })
+        .catch((error: any) => {
+          console.error('❌ Connection failed:', error);
+          let errorMsg = error?.message || 'Failed to connect. Please try again.';
+          if (errorMsg.includes('rejected')) {
+            errorMsg = 'Connection rejected. Please approve in your wallet.';
+          }
+          setConnectionError(errorMsg);
+          setHasAttemptedConnection(false);
+          connectingRef.current = null;
+        });
     });
   }, [wallet, publicKey, connecting, connect, setVisible]);
 

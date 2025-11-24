@@ -8,9 +8,7 @@ import {
 import { WalletAdapterNetwork } from '@solana/wallet-adapter-base';
 import { WalletModalProvider } from '@solana/wallet-adapter-react-ui';
 import {
-  PhantomWalletAdapter,
   SolflareWalletAdapter,
-  TrustWalletAdapter,
 } from '@solana/wallet-adapter-wallets';
 import { BackpackWalletAdapter } from '@solana/wallet-adapter-backpack';
 import { GlowWalletAdapter } from '@solana/wallet-adapter-glow';
@@ -29,12 +27,10 @@ export function WalletProvider({ children }: WalletProviderProps) {
 
   const wallets = useMemo(
     () => [
-      new PhantomWalletAdapter(),
+      // Phantom, Trust, and Coinbase are auto-detected as Standard Wallets
       new SolflareWalletAdapter(),
       new BackpackWalletAdapter(),
       new GlowWalletAdapter(),
-      // Coinbase Wallet is auto-detected via Wallet Standard
-      new TrustWalletAdapter(),
     ],
     []
   );
