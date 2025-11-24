@@ -40,54 +40,31 @@ export function CreateRoomForm() {
     }
   }, [publicKey, connecting, step, setVisible, hasAttemptedConnection]);
 
-  // When wallet is selected, connect using queueMicrotask to preserve gesture chain
-  // CRITICAL: Must maintain user gesture chain for popup to open
+  // The wallet adapter modal automatically connects when you click a wallet
+  // We just monitor the state - DO NOT interfere with the modal's built-in connection
   useEffect(() => {
-    if (!wallet || publicKey || connecting || !connect) return;
-    
-    const walletName = wallet.adapter.name;
-    
-    // Prevent duplicate attempts
-    if (connectingRef.current === walletName) {
-      return;
+    if (wallet && !publicKey) {
+      console.log('🔌 Wallet selected by modal:', wallet.adapter.name);
+      console.log('🔌 Modal should automatically connect - waiting...');
+      setHasAttemptedConnection(true);
+      setConnectionError(null);
     }
-    
-    console.log('🔌 Wallet selected:', walletName);
-    connectingRef.current = walletName;
-    setHasAttemptedConnection(true);
-    setConnectionError(null);
-    
-    // Use queueMicrotask to call connect() in the same event loop
-    // This preserves the user gesture chain better than setTimeout
-    queueMicrotask(() => {
-      console.log('🔌 Calling connect() - wallet extension popup should open now');
-      connect()
-        .then(() => {
-          console.log('✅ Wallet connected successfully');
-          setVisible(false);
-          connectingRef.current = null;
-        })
-        .catch((error: any) => {
-          console.error('❌ Wallet connection error:', error);
-          
-          // Provide user-friendly error message
-          let errorMsg = 'Failed to connect wallet. ';
-          if (error?.message?.includes('User rejected') || error?.message?.includes('rejected')) {
-            errorMsg = 'Connection rejected. Please try again and approve the connection.';
-          } else if (error?.message?.includes('timeout')) {
-            errorMsg = 'Connection timeout. Please try again.';
-          } else if (error?.message) {
-            errorMsg = error.message;
-          } else {
-            errorMsg += 'Please make sure your wallet extension is unlocked and try again.';
-          }
-          
-          setConnectionError(errorMsg);
+  }, [wallet, publicKey]);
+
+  // Monitor for connection errors
+  useEffect(() => {
+    // If wallet is selected but not connecting and not connected after a delay, show error
+    if (wallet && !publicKey && !connecting && hasAttemptedConnection) {
+      const timer = setTimeout(() => {
+        if (!publicKey && !connecting) {
+          console.warn('⚠️ Wallet selected but connection not happening - modal may need manual trigger');
+          setConnectionError('Connection not started. Please click the wallet again in the modal.');
           setHasAttemptedConnection(false);
-          connectingRef.current = null;
-        });
-    });
-  }, [wallet, publicKey, connecting, connect, setVisible]);
+        }
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [wallet, publicKey, connecting, hasAttemptedConnection]);
 
   // Close modal when wallet connects
   useEffect(() => {
