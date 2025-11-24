@@ -40,8 +40,8 @@ export function CreateRoomForm() {
     }
   }, [publicKey, connecting, step, setVisible, hasAttemptedConnection]);
 
-  // When wallet is selected, ensure connection happens
-  // The modal should trigger connection, but we'll ensure it does
+  // When wallet is selected, connect using queueMicrotask to preserve gesture chain
+  // CRITICAL: Must maintain user gesture chain for popup to open
   useEffect(() => {
     if (!wallet || publicKey || connecting || !connect) return;
     
@@ -52,40 +52,15 @@ export function CreateRoomForm() {
       return;
     }
     
-    console.log('🔌 Wallet selected, connecting:', walletName);
-    console.log('🔌 Wallet adapter state:', {
-      name: wallet.adapter.name,
-      connecting: connecting,
-      connected: !!publicKey
-    });
-    
+    console.log('🔌 Wallet selected:', walletName);
     connectingRef.current = walletName;
     setHasAttemptedConnection(true);
     setConnectionError(null);
     
-    // Check if wallet extension is available
-    const checkWalletAvailable = () => {
-      if (walletName === 'Phantom' && typeof window !== 'undefined') {
-        return !!(window as any).solana?.isPhantom;
-      }
-      if (walletName === 'Solflare' && typeof window !== 'undefined') {
-        return !!(window as any).solflare;
-      }
-      return true; // Assume available for other wallets
-    };
-    
-    if (!checkWalletAvailable()) {
-      const errorMsg = `${walletName} extension not detected. Please install and refresh the page.`;
-      console.error('❌', errorMsg);
-      setConnectionError(errorMsg);
-      setHasAttemptedConnection(false);
-      connectingRef.current = null;
-      return;
-    }
-    
-    // Call connect() immediately - this should trigger wallet extension popup
-    // Add a small delay to ensure wallet adapter is ready
-    const timer = setTimeout(() => {
+    // Use queueMicrotask to call connect() in the same event loop
+    // This preserves the user gesture chain better than setTimeout
+    queueMicrotask(() => {
+      console.log('🔌 Calling connect() - wallet extension popup should open now');
       connect()
         .then(() => {
           console.log('✅ Wallet connected successfully');
@@ -94,16 +69,10 @@ export function CreateRoomForm() {
         })
         .catch((error: any) => {
           console.error('❌ Wallet connection error:', error);
-          console.error('❌ Error details:', {
-            name: error?.name,
-            message: error?.message,
-            code: error?.code,
-            stack: error?.stack
-          });
           
           // Provide user-friendly error message
           let errorMsg = 'Failed to connect wallet. ';
-          if (error?.message?.includes('User rejected')) {
+          if (error?.message?.includes('User rejected') || error?.message?.includes('rejected')) {
             errorMsg = 'Connection rejected. Please try again and approve the connection.';
           } else if (error?.message?.includes('timeout')) {
             errorMsg = 'Connection timeout. Please try again.';
@@ -117,9 +86,7 @@ export function CreateRoomForm() {
           setHasAttemptedConnection(false);
           connectingRef.current = null;
         });
-    }, 100);
-    
-    return () => clearTimeout(timer);
+    });
   }, [wallet, publicKey, connecting, connect, setVisible]);
 
   // Close modal when wallet connects
