@@ -47,15 +47,18 @@ export function HostLobby() {
   useEffect(() => {
     if (!mounted || !roomId) {
       if (mounted && !roomId) {
+        console.error('❌ No room ID provided in URL');
         setError('No room ID provided');
         setLoading(false);
       }
       return;
     }
 
+    console.log('🔍 Loading room:', roomId);
+
     // First check if room is already in store (from same session)
     if (currentRoom && currentRoom.id === roomId) {
-      console.log('✅ Room found in store');
+      console.log('✅ Room found in Zustand store');
       setLoading(false);
       setError(null);
       return;
@@ -63,49 +66,80 @@ export function HostLobby() {
 
     // Try sessionStorage first (most recent room)
     try {
-      const sessionRoomStr = sessionStorage.getItem('current_room');
-      if (sessionRoomStr) {
-        const sessionRoom = JSON.parse(sessionRoomStr);
-        if (sessionRoom.id === roomId) {
-          console.log('✅ Room found in sessionStorage');
-          const restoredRoom: Room = {
-            ...sessionRoom,
-            hostWallet: new PublicKey(sessionRoom.hostWallet),
-          };
-          setRoom(restoredRoom, true);
-          setError(null);
-          setLoading(false);
-          return;
+      if (typeof Storage !== 'undefined' && sessionStorage) {
+        const sessionRoomStr = sessionStorage.getItem('current_room');
+        if (sessionRoomStr) {
+          const sessionRoom = JSON.parse(sessionRoomStr);
+          if (sessionRoom.id === roomId) {
+            console.log('✅ Room found in sessionStorage');
+            try {
+              const restoredRoom: Room = {
+                ...sessionRoom,
+                hostWallet: new PublicKey(sessionRoom.hostWallet),
+              };
+              setRoom(restoredRoom, true);
+              setError(null);
+              setLoading(false);
+              return;
+            } catch (pkError: any) {
+              console.error('❌ Failed to restore PublicKey from sessionStorage:', pkError);
+              // Continue to try localStorage
+            }
+          } else {
+            console.log('⚠️ SessionStorage room ID mismatch:', sessionRoom.id, 'vs', roomId);
+          }
         }
       }
-    } catch (e) {
-      console.warn('⚠️ Failed to check sessionStorage:', e);
+    } catch (e: any) {
+      console.warn('⚠️ Failed to check sessionStorage:', e.message);
+      // Continue to try localStorage
     }
 
     // Try to load from localStorage
     console.log('🔍 Loading room from localStorage, roomId:', roomId);
     try {
+      if (typeof Storage === 'undefined' || !localStorage) {
+        throw new Error('localStorage is not available');
+      }
+
       const roomsStr = localStorage.getItem('x402_rooms');
       if (!roomsStr) {
         console.warn('⚠️ No rooms in localStorage');
-        setError('Room not found. Please create a new room.');
+        setError('Room not found. The room may have expired or was created in a different browser session. Please create a new room.');
         setLoading(false);
         return;
       }
 
-      const rooms = JSON.parse(roomsStr);
+      let rooms: any[];
+      try {
+        rooms = JSON.parse(roomsStr);
+      } catch (parseError) {
+        console.error('❌ Failed to parse rooms from localStorage:', parseError);
+        setError('Failed to read room data. Storage may be corrupted.');
+        setLoading(false);
+        return;
+      }
+
       console.log('📦 Found', rooms.length, 'rooms in localStorage');
       
-      const roomData = rooms.find((r: any) => r.id === roomId);
+      const roomData = rooms.find((r: any) => r && r.id === roomId);
       
       if (!roomData) {
-        console.warn('❌ Room not found. Available IDs:', rooms.map((r: any) => r.id));
-        setError(`Room "${roomId}" not found. Available rooms: ${rooms.length}`);
+        console.warn('❌ Room not found. Available IDs:', rooms.map((r: any) => r?.id).filter(Boolean));
+        setError(`Room "${roomId}" not found. The room may have expired or was cleared. Please create a new room.`);
         setLoading(false);
         return;
       }
 
       console.log('✅ Room found, restoring...', roomData);
+      
+      // Validate room data structure
+      if (!roomData.hostWallet) {
+        console.error('❌ Room data missing hostWallet');
+        setError('Room data is incomplete. Invalid wallet address.');
+        setLoading(false);
+        return;
+      }
       
       // Restore room with PublicKey
       try {
@@ -113,18 +147,27 @@ export function HostLobby() {
           ...roomData,
           hostWallet: new PublicKey(roomData.hostWallet),
         };
+        
+        // Validate restored room
+        if (!restoredRoom.id || !restoredRoom.joinCode || !restoredRoom.config) {
+          console.error('❌ Invalid room structure after restoration');
+          setError('Room data is incomplete. Please create a new room.');
+          setLoading(false);
+          return;
+        }
+        
         setRoom(restoredRoom, true);
         setError(null);
         setLoading(false);
         console.log('✅ Room restored successfully');
-      } catch (pkError) {
+      } catch (pkError: any) {
         console.error('❌ Failed to restore PublicKey:', pkError);
-        setError('Failed to restore room data. Invalid wallet address.');
+        setError(`Failed to restore room data: ${pkError.message || 'Invalid wallet address'}`);
         setLoading(false);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('❌ Failed to load room:', error);
-      setError('Failed to load room from storage. Please try creating a new room.');
+      setError(`Failed to load room from storage: ${error.message || 'Unknown error'}. Please try creating a new room.`);
       setLoading(false);
     }
   }, [roomId, currentRoom?.id, setRoom, mounted]);

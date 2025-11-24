@@ -72,12 +72,21 @@ export function CreateRoomForm() {
 
   const handleCreateRoom = async () => {
     if (!publicKey) {
+      alert('Please connect your wallet first');
       setStep(0);
+      return;
+    }
+
+    // Validate rate before proceeding
+    if (rate < 0.1 || rate > 100) {
+      alert('Rate must be between 0.1 and 100 USDC per minute');
       return;
     }
 
     setLoading(true);
     try {
+      console.log('🚀 Starting room creation...');
+      
       const room = await createRoom({
         rate,
         hostWallet: publicKey,
@@ -89,25 +98,36 @@ export function CreateRoomForm() {
         },
       });
 
+      console.log('✅ Room created, storing in state and storage...');
+
+      // Store in Zustand store first
       setRoom(room, true);
+
       // Store room immediately before navigation to ensure it's available
       // Also store in sessionStorage as backup
       if (typeof window !== 'undefined') {
         try {
-          sessionStorage.setItem('current_room', JSON.stringify({
+          const serializedRoom = {
             ...room,
             hostWallet: room.hostWallet.toString(),
-          }));
-        } catch (e) {
-          console.warn('Failed to store room in sessionStorage:', e);
+          };
+          sessionStorage.setItem('current_room', JSON.stringify(serializedRoom));
+          console.log('✅ Room stored in sessionStorage');
+        } catch (e: any) {
+          console.error('❌ Failed to store room in sessionStorage:', e);
+          // Don't fail room creation if sessionStorage fails
         }
       }
+
+      // Small delay to ensure storage operations complete
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      console.log('🔀 Navigating to host lobby...');
       router.push(`/room/${room.id}/host`);
     } catch (error: any) {
-      console.error('Failed to create room:', error);
+      console.error('❌ Failed to create room:', error);
       const errorMessage = error?.message || 'Unknown error occurred';
-      alert(`Failed to create room: ${errorMessage}. Please try again.`);
-    } finally {
+      alert(`Failed to create room: ${errorMessage}\n\nPlease check the browser console for details and try again.`);
       setLoading(false);
     }
   };
