@@ -25,6 +25,7 @@
     "@solana/wallet-adapter-react": "^0.15.35",
     "@solana/wallet-adapter-react-ui": "^0.9.35",
     "@solana/wallet-adapter-solflare": "^0.6.23",
+    "@solana/wallet-adapter-walletconnect": "^0.1.21",
     "@solana/wallet-adapter-wallets": "^0.19.26",
     "@solana/web3.js": "^1.87.0",
     "class-variance-authority": "^0.7.0",
