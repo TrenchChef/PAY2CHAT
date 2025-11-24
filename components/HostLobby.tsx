@@ -254,12 +254,31 @@ export function HostLobby() {
 
   // ALWAYS render something - never return null or blank
   // Always render with visible content, even during loading
+  // Use inline styles to ensure visibility even if CSS fails to load
+  const baseStyles = {
+    color: '#FFFFFF',
+    backgroundColor: '#181c20',
+    fontFamily: 'system-ui, -apple-system, sans-serif'
+  };
+
   if (!mounted) {
     console.log('📄 HostLobby: Not mounted yet, showing loading');
     return (
-      <div className="max-w-4xl mx-auto flex flex-col items-center justify-center min-h-[400px] py-8">
+      <div 
+        style={{
+          maxWidth: '896px',
+          margin: '0 auto',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          minHeight: '400px',
+          padding: '32px 16px',
+          ...baseStyles
+        }}
+      >
         <Spinner size="lg" />
-        <p className="mt-4 text-text" style={{ color: '#FFFFFF' }}>Please wait...</p>
+        <p style={{ marginTop: '16px', color: '#FFFFFF', fontSize: '16px' }}>Please wait...</p>
       </div>
     );
   }
@@ -267,10 +286,24 @@ export function HostLobby() {
   // Loading state - show even if roomId is missing
   if (loading) {
     return (
-      <div className="max-w-4xl mx-auto flex flex-col items-center justify-center min-h-[400px] py-8">
+      <div 
+        style={{
+          maxWidth: '896px',
+          margin: '0 auto',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          minHeight: '400px',
+          padding: '32px 16px',
+          ...baseStyles
+        }}
+      >
         <Spinner size="lg" />
-        <p className="mt-4 text-text">Loading room...</p>
-        <p className="mt-2 text-sm text-text-muted">Room ID: {roomId || 'Reading from URL...'}</p>
+        <p style={{ marginTop: '16px', color: '#FFFFFF', fontSize: '16px' }}>Loading room...</p>
+        <p style={{ marginTop: '8px', color: '#9CA3AF', fontSize: '14px' }}>
+          Room ID: {roomId || 'Reading from URL...'}
+        </p>
       </div>
     );
   }
@@ -278,31 +311,63 @@ export function HostLobby() {
   // Error state or no room found
   if (error || (!loading && !currentRoom)) {
     return (
-      <div className="max-w-4xl mx-auto py-8">
-        <div className="bg-surface rounded-lg p-6 border border-border">
-          <h2 className="text-xl font-bold mb-4 text-danger">Room Not Found</h2>
-          <p className="text-text mb-4">
+      <div 
+        style={{
+          maxWidth: '896px',
+          margin: '0 auto',
+          padding: '32px 16px',
+          ...baseStyles
+        }}
+      >
+        <div 
+          style={{
+            backgroundColor: '#2A2F36',
+            borderRadius: '8px',
+            padding: '24px',
+            border: '1px solid #3A3F46'
+          }}
+        >
+          <h2 style={{ fontSize: '20px', fontWeight: 'bold', marginBottom: '16px', color: '#EF4444' }}>
+            Room Not Found
+          </h2>
+          <p style={{ marginBottom: '16px', color: '#FFFFFF' }}>
             {error || 'The room you\'re looking for could not be found.'}
           </p>
-          <div className="space-y-2">
-            <p className="text-sm text-text-muted">
-              Room ID: <code className="bg-background px-2 py-1 rounded text-text">{roomId || 'N/A'}</code>
+          <div style={{ marginBottom: '16px' }}>
+            <p style={{ fontSize: '14px', color: '#9CA3AF', marginBottom: '8px' }}>
+              Room ID: <code style={{ backgroundColor: '#181c20', padding: '4px 8px', borderRadius: '4px', color: '#FFFFFF' }}>{roomId || 'N/A'}</code>
             </p>
             {error && (
-              <div className="mt-4 p-3 bg-background rounded border border-border">
-                <p className="text-xs font-mono text-text-muted break-all">{error}</p>
+              <div style={{ marginTop: '16px', padding: '12px', backgroundColor: '#181c20', borderRadius: '4px', border: '1px solid #3A3F46' }}>
+                <p style={{ fontSize: '12px', fontFamily: 'monospace', color: '#9CA3AF', wordBreak: 'break-all' }}>{error}</p>
               </div>
             )}
-            <div className="flex gap-4 mt-4">
+            <div style={{ display: 'flex', gap: '16px', marginTop: '16px' }}>
               <button
                 onClick={() => router.push('/')}
-                className="px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-lg font-medium transition-colors"
+                style={{
+                  padding: '8px 16px',
+                  backgroundColor: '#8B5CF6',
+                  color: '#FFFFFF',
+                  borderRadius: '8px',
+                  fontWeight: '500',
+                  border: 'none',
+                  cursor: 'pointer'
+                }}
               >
                 Go Home
               </button>
               <button
                 onClick={() => router.push('/create')}
-                className="px-4 py-2 bg-surface-light hover:bg-surface-light/80 text-text rounded-lg font-medium transition-colors"
+                style={{
+                  padding: '8px 16px',
+                  backgroundColor: '#2A2F36',
+                  color: '#FFFFFF',
+                  borderRadius: '8px',
+                  fontWeight: '500',
+                  border: '1px solid #3A3F46',
+                  cursor: 'pointer'
+                }}
               >
                 Create New Room
               </button>
@@ -317,15 +382,39 @@ export function HostLobby() {
   // Ensure we always have a room before rendering (safety check)
   if (!currentRoom) {
     return (
-      <div className="max-w-4xl mx-auto py-8">
-        <div className="bg-surface rounded-lg p-6 border border-border">
-          <h2 className="text-xl font-bold mb-4 text-danger">Room Not Available</h2>
-          <p className="text-text mb-4">
+      <div 
+        style={{
+          maxWidth: '896px',
+          margin: '0 auto',
+          padding: '32px 16px',
+          ...baseStyles
+        }}
+      >
+        <div 
+          style={{
+            backgroundColor: '#2A2F36',
+            borderRadius: '8px',
+            padding: '24px',
+            border: '1px solid #3A3F46'
+          }}
+        >
+          <h2 style={{ fontSize: '20px', fontWeight: 'bold', marginBottom: '16px', color: '#EF4444' }}>
+            Room Not Available
+          </h2>
+          <p style={{ marginBottom: '16px', color: '#FFFFFF' }}>
             Room data is not available. Please create a new room.
           </p>
           <button
             onClick={() => router.push('/create')}
-            className="px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-lg font-medium transition-colors"
+            style={{
+              padding: '8px 16px',
+              backgroundColor: '#8B5CF6',
+              color: '#FFFFFF',
+              borderRadius: '8px',
+              fontWeight: '500',
+              border: 'none',
+              cursor: 'pointer'
+            }}
           >
             Create New Room
           </button>
@@ -335,10 +424,37 @@ export function HostLobby() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto py-8">
-      <h1 className="text-3xl font-bold mb-8 text-text">Host Lobby</h1>
+    <div 
+      className="max-w-4xl mx-auto py-8"
+      style={{
+        maxWidth: '896px',
+        margin: '0 auto',
+        padding: '32px 16px',
+        ...baseStyles
+      }}
+    >
+      <h1 
+        className="text-3xl font-bold mb-8 text-text"
+        style={{
+          fontSize: '30px',
+          fontWeight: 'bold',
+          marginBottom: '32px',
+          color: '#FFFFFF'
+        }}
+      >
+        Host Lobby
+      </h1>
 
-      <div className="bg-surface rounded-lg p-6 border border-border space-y-6">
+      <div 
+        className="bg-surface rounded-lg p-6 border border-border space-y-6"
+        style={{
+          backgroundColor: '#2A2F36',
+          borderRadius: '8px',
+          padding: '24px',
+          border: '1px solid #3A3F46',
+          ...baseStyles
+        }}
+      >
         <div>
           <h2 className="text-xl font-bold mb-2">Shareable Room URL</h2>
           <p className="text-sm text-text-muted mb-2">

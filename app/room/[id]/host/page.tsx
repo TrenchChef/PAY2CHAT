@@ -26,17 +26,47 @@ export default function HostLobbyPage() {
   console.log('📄 HostLobbyPage rendering, mounted:', mounted);
   
   return (
-    <div className="min-h-screen bg-background text-text" style={{ minHeight: '100vh', backgroundColor: '#181c20' }}>
+    <div 
+      className="min-h-screen bg-background text-text" 
+      style={{ 
+        minHeight: '100vh', 
+        backgroundColor: '#181c20',
+        color: '#FFFFFF',
+        display: 'block',
+        width: '100%',
+        padding: '0',
+        margin: '0'
+      }}
+    >
       <ErrorBoundary>
         {!mounted ? (
-          <div className="min-h-screen flex items-center justify-center" style={{ minHeight: '100vh' }}>
-            <div className="text-center">
+          <div 
+            style={{ 
+              minHeight: '100vh', 
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: '#181c20',
+              color: '#FFFFFF'
+            }}
+          >
+            <div style={{ textAlign: 'center' }}>
               <Spinner size="lg" />
-              <p className="mt-4 text-text" style={{ color: '#FFFFFF' }}>Loading...</p>
+              <p style={{ marginTop: '16px', color: '#FFFFFF', fontSize: '16px' }}>Loading...</p>
             </div>
           </div>
         ) : (
-          <main className="container mx-auto px-4 py-8">
+          <main 
+            className="container mx-auto px-4 py-8"
+            style={{
+              maxWidth: '1200px',
+              margin: '0 auto',
+              padding: '32px 16px',
+              minHeight: '100vh',
+              backgroundColor: '#181c20',
+              color: '#FFFFFF'
+            }}
+          >
             <HostLobby />
           </main>
         )}
