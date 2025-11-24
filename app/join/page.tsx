@@ -4,6 +4,7 @@ import { Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import nextDynamic from 'next/dynamic';
 import { Spinner } from '@/components/Spinner';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 // Dynamically import JoinRoomForm to prevent SSR analysis
 const JoinRoomForm = nextDynamic(() => import('@/components/JoinRoomForm').then(mod => ({ default: mod.JoinRoomForm })), {
@@ -36,9 +37,11 @@ function JoinPageContent() {
 
 export default function JoinPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-background flex items-center justify-center">Loading...</div>}>
-      <JoinPageContent />
-    </Suspense>
+    <ErrorBoundary>
+      <Suspense fallback={<div className="min-h-screen bg-background flex items-center justify-center">Loading...</div>}>
+        <JoinPageContent />
+      </Suspense>
+    </ErrorBoundary>
   );
 }
 

@@ -95,7 +95,7 @@ export function HostLobby() {
       return;
     }
 
-    console.log('🔍 Loading room:', roomId);
+    console.log('🔍 Loading room:', roomId, 'Current room in store:', currentRoom?.id);
 
     // First check if room is already in store (from same session)
     if (currentRoom && currentRoom.id === roomId) {
