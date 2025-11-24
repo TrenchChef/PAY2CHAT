@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { HostLobby } from '@/components/HostLobby';
 import { Spinner } from '@/components/Spinner';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 // Force dynamic rendering to prevent server-side rendering issues
 export const dynamic = 'force-dynamic';
@@ -13,7 +14,10 @@ export default function HostLobbyPage() {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
+    // Ensure we're in the browser
+    if (typeof window !== 'undefined') {
+      setMounted(true);
+    }
   }, []);
 
   // Always show something - never blank
@@ -29,11 +33,13 @@ export default function HostLobbyPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <main className="container mx-auto px-4 py-8">
-        <HostLobby />
-      </main>
-    </div>
+    <ErrorBoundary>
+      <div className="min-h-screen bg-background">
+        <main className="container mx-auto px-4 py-8">
+          <HostLobby />
+        </main>
+      </div>
+    </ErrorBoundary>
   );
 }
 

@@ -11,7 +11,6 @@ export function HostLobby() {
   const [mounted, setMounted] = useState(false);
   const [roomId, setRoomId] = useState<string>('');
   const router = useRouter();
-  const params = useParams();
   const { currentRoom, setRoom } = useRoomStore();
   const [copied, setCopied] = useState<'code' | 'shareable' | null>(null);
   const [startingCall, setStartingCall] = useState(false);
@@ -19,23 +18,30 @@ export function HostLobby() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Ensure component is mounted and get room ID safely
+  // Ensure component is mounted and get room ID safely - delay useParams until mounted
   useEffect(() => {
     if (typeof window === 'undefined') return;
     
     setMounted(true);
     
-    // Safely get room ID from params
+    // Get room ID from URL pathname instead of useParams to avoid SSR issues
     try {
-      const id = (params?.id as string) || '';
+      const pathname = window.location.pathname;
+      const match = pathname.match(/\/room\/([^/]+)\/host/);
+      const id = match ? match[1] : '';
       setRoomId(id);
-      console.log('🔍 Room ID from params:', id);
+      console.log('🔍 Room ID from URL:', id);
+      
+      if (!id) {
+        setError('No room ID found in URL');
+        setLoading(false);
+      }
     } catch (e) {
       console.error('❌ Failed to get room ID:', e);
       setError('Failed to get room ID from URL');
       setLoading(false);
     }
-  }, [params]);
+  }, []);
 
   // Load room - check store first, then localStorage
   useEffect(() => {
