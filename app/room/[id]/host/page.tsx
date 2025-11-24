@@ -13,18 +13,64 @@ export const fetchCache = 'force-no-store';
 
 export default function HostLobbyPage() {
   const [mounted, setMounted] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
     // Ensure we're in the browser
     if (typeof window !== 'undefined') {
-      setMounted(true);
+      try {
+        setMounted(true);
+      } catch (e: any) {
+        console.error('Failed to mount page:', e);
+        setError(e);
+      }
     }
   }, []);
 
+  // Log render
+  if (typeof window !== 'undefined') {
+    console.log('📄 HostLobbyPage rendering, mounted:', mounted, 'error:', error);
+  }
+
   // Always show something - never blank
   // Render immediately with visible content
-  console.log('📄 HostLobbyPage rendering, mounted:', mounted);
-  
+  if (error) {
+    return (
+      <div 
+        style={{ 
+          minHeight: '100vh', 
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: '#181c20',
+          color: '#FFFFFF',
+          padding: '20px',
+          fontFamily: 'system-ui, sans-serif'
+        }}
+      >
+        <div style={{ textAlign: 'center', maxWidth: '600px' }}>
+          <h1 style={{ fontSize: '24px', marginBottom: '16px', color: '#EF4444' }}>Error Loading Page</h1>
+          <p style={{ color: '#FFFFFF', marginBottom: '16px' }}>{error.message || 'An error occurred'}</p>
+          <button
+            onClick={() => window.location.href = '/'}
+            style={{
+              padding: '12px 24px',
+              backgroundColor: '#8B5CF6',
+              color: '#FFFFFF',
+              border: 'none',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontSize: '16px',
+              fontWeight: '500'
+            }}
+          >
+            Go Home
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div 
       className="min-h-screen bg-background text-text" 
@@ -35,9 +81,16 @@ export default function HostLobbyPage() {
         display: 'block',
         width: '100%',
         padding: '0',
-        margin: '0'
+        margin: '0',
+        fontFamily: 'system-ui, -apple-system, sans-serif'
       }}
     >
+      <noscript>
+        <div style={{ padding: '20px', color: '#FFFFFF', backgroundColor: '#181c20', minHeight: '100vh' }}>
+          <h1>JavaScript Required</h1>
+          <p>This application requires JavaScript to function. Please enable JavaScript and refresh the page.</p>
+        </div>
+      </noscript>
       <ErrorBoundary>
         {!mounted ? (
           <div 
