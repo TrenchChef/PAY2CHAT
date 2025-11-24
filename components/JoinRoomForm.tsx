@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { useWalletModal } from '@solana/wallet-adapter-react-ui';
@@ -50,10 +50,10 @@ export function JoinRoomForm({ initialRoomId, initialCode }: JoinRoomFormProps) 
   }, [publicKey, connecting, step, setVisible, hasAttemptedConnection]);
 
   // CRITICAL: When wallet is selected from modal, immediately call connect()
-  // Use queueMicrotask to call connect() as soon as possible while preserving user gesture chain
-  // This must happen synchronously to preserve user gesture chain for extension popups
+  // Use useLayoutEffect instead of useEffect to run synchronously before browser paint
+  // This preserves the user gesture chain required for wallet extension popups
   // For WalletConnect on mobile, this also ensures deep linking works properly
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (wallet && !publicKey && !connecting && connect && step === 0) {
       const walletName = wallet.adapter.name;
       
