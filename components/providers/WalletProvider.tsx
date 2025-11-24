@@ -9,8 +9,10 @@ import { WalletAdapterNetwork } from '@solana/wallet-adapter-base';
 import { WalletModalProvider } from '@solana/wallet-adapter-react-ui';
 import { clusterApiUrl } from '@solana/web3.js';
 import '@solana/wallet-adapter-react-ui/styles.css';
-import { PhantomWalletAdapter } from '@solana/wallet-adapter-phantom';
-import { SolflareWalletAdapter } from '@solana/wallet-adapter-solflare';
+import { 
+  PhantomWalletAdapter,
+  SolflareWalletAdapter,
+} from '@solana/wallet-adapter-wallets';
 import { BackpackWalletAdapter } from '@solana/wallet-adapter-backpack';
 import { GlowWalletAdapter } from '@solana/wallet-adapter-glow';
 
@@ -43,30 +45,14 @@ export function WalletProvider({ children }: WalletProviderProps) {
 
       const walletAdapters = [];
 
-      // Add desktop extension adapters (auto-detect installed extensions)
-      try {
-        walletAdapters.push(new PhantomWalletAdapter());
-      } catch (error) {
-        console.error('Failed to initialize Phantom adapter:', error);
-      }
-
-      try {
-        walletAdapters.push(new SolflareWalletAdapter());
-      } catch (error) {
-        console.error('Failed to initialize Solflare adapter:', error);
-      }
-
-      try {
-        walletAdapters.push(new BackpackWalletAdapter());
-      } catch (error) {
-        console.error('Failed to initialize Backpack adapter:', error);
-      }
-
-      try {
-        walletAdapters.push(new GlowWalletAdapter());
-      } catch (error) {
-        console.error('Failed to initialize Glow adapter:', error);
-      }
+      // Add desktop extension adapters - these will auto-detect if extensions are installed
+      // The adapters from @solana/wallet-adapter-wallets handle detection automatically
+      walletAdapters.push(
+        new PhantomWalletAdapter(),
+        new SolflareWalletAdapter(),
+        new BackpackWalletAdapter(),
+        new GlowWalletAdapter()
+      );
 
       // Add WalletConnect adapter (for mobile/QR code support)
       // Only add if it's loaded and mounted
