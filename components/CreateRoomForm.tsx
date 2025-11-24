@@ -12,7 +12,7 @@ import { getUSDCBalance } from '@/lib/solana/wallet';
 
 export function CreateRoomForm() {
   const router = useRouter();
-  const { publicKey, connecting, wallet, connect } = useWallet();
+  const { publicKey, connecting, wallet, connect, select } = useWallet();
   const { setVisible } = useWalletModal();
   const { setRoom } = useRoomStore();
   const [step, setStep] = useState(0); // Start at step 0 (wallet connection)
@@ -25,10 +25,11 @@ export function CreateRoomForm() {
   const [balance, setBalance] = useState<number | null>(null);
   const [loadingBalance, setLoadingBalance] = useState(false);
   const [connectionError, setConnectionError] = useState<string | null>(null);
+  const [hasAttemptedConnection, setHasAttemptedConnection] = useState(false);
 
   // Auto-open wallet modal when component mounts if wallet is not connected
   useEffect(() => {
-    if (!publicKey && !connecting && step === 0) {
+    if (!publicKey && !connecting && step === 0 && !hasAttemptedConnection) {
       const timer = setTimeout(() => {
         console.log('🔌 Auto-opening wallet connection modal...');
         setConnectionError(null);
@@ -36,15 +37,22 @@ export function CreateRoomForm() {
       }, 300);
       return () => clearTimeout(timer);
     }
-  }, [publicKey, connecting, step, setVisible]);
+  }, [publicKey, connecting, step, setVisible, hasAttemptedConnection]);
 
-  // Handle wallet connection after selection
+  // Handle wallet connection after selection from modal
   useEffect(() => {
-    if (wallet && !publicKey && !connecting && connect) {
-      // Wallet selected but not connected - trigger connection
-      console.log('🔌 Wallet selected, attempting to connect...', wallet.adapter.name);
+    // When a wallet is selected from the modal, trigger connection
+    // The wallet adapter's connect() should open the extension popup
+    if (wallet && !publicKey && !connecting && connect && !hasAttemptedConnection) {
+      console.log('🔌 Wallet selected from modal:', wallet.adapter.name);
+      setHasAttemptedConnection(true);
+      setConnectionError(null);
+      
       const connectWallet = async () => {
         try {
+          console.log('🔌 Calling connect() - this should open the wallet extension popup');
+          // Call connect() - this should trigger the wallet extension to open
+          // The wallet adapter handles the popup opening internally
           await connect();
           console.log('✅ Wallet connected successfully');
           setConnectionError(null);
@@ -52,14 +60,16 @@ export function CreateRoomForm() {
           console.error('❌ Wallet connection error:', error);
           const errorMsg = error?.message || 'Failed to connect wallet. Please try again or select a different wallet.';
           setConnectionError(errorMsg);
+          setHasAttemptedConnection(false); // Allow retry
         }
       };
       
-      // Small delay to ensure wallet adapter is ready
-      const timer = setTimeout(connectWallet, 500);
+      // Small delay to ensure wallet adapter has finished selection process
+      // This ensures the adapter is ready to open the popup
+      const timer = setTimeout(connectWallet, 100);
       return () => clearTimeout(timer);
     }
-  }, [wallet, publicKey, connecting, connect]);
+  }, [wallet, publicKey, connecting, connect, hasAttemptedConnection]);
 
   // Auto-advance to step 1 when wallet connects
   useEffect(() => {
@@ -91,10 +101,26 @@ export function CreateRoomForm() {
     }
   }, [publicKey]);
 
-  const handleConnectWallet = () => {
+  const handleConnectWallet = async () => {
     console.log('🔌 User manually clicked Connect Wallet');
     setConnectionError(null);
-    setVisible(true);
+    setHasAttemptedConnection(false);
+    
+    // If a wallet is already selected, try to connect directly
+    if (wallet && !publicKey && connect) {
+      try {
+        console.log('🔌 Connecting to selected wallet:', wallet.adapter.name);
+        await connect();
+      } catch (error: any) {
+        console.error('❌ Connection error:', error);
+        setConnectionError(error?.message || 'Failed to connect wallet. Please try selecting a wallet again.');
+        // Open modal as fallback
+        setVisible(true);
+      }
+    } else {
+      // Open modal to select wallet
+      setVisible(true);
+    }
   };
 
   const formatAddress = (address: string) => {
