@@ -1,6 +1,6 @@
 'use client';
 
-import { ActionScreen } from '@/components/ActionScreen';
+import nextDynamic from 'next/dynamic';
 import { NavBar } from '@/components/NavBar';
 import { Footer } from '@/components/Footer';
 import { useState, useEffect } from 'react';
@@ -8,6 +8,17 @@ import { useConsent } from '@/components/providers/ConsentProvider';
 import { useRouter } from 'next/navigation';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { useWalletModal } from '@solana/wallet-adapter-react-ui';
+import { Spinner } from '@/components/Spinner';
+
+// Dynamically import ActionScreen to prevent SSR analysis
+const ActionScreen = nextDynamic(() => import('@/components/ActionScreen').then(mod => ({ default: mod.ActionScreen })), {
+  ssr: false,
+  loading: () => (
+    <div className="flex items-center justify-center py-8">
+      <Spinner size="sm" />
+    </div>
+  ),
+});
 
 // Force dynamic rendering to prevent static generation errors with client-only hooks
 export const dynamic = 'force-dynamic';

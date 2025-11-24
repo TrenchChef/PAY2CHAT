@@ -2,7 +2,18 @@
 
 import { Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { JoinRoomForm } from '@/components/JoinRoomForm';
+import nextDynamic from 'next/dynamic';
+import { Spinner } from '@/components/Spinner';
+
+// Dynamically import JoinRoomForm to prevent SSR analysis
+const JoinRoomForm = nextDynamic(() => import('@/components/JoinRoomForm').then(mod => ({ default: mod.JoinRoomForm })), {
+  ssr: false,
+  loading: () => (
+    <div className="min-h-screen bg-background flex items-center justify-center">
+      <Spinner size="lg" />
+    </div>
+  ),
+});
 
 // Force dynamic rendering to prevent static generation errors
 export const dynamic = 'force-dynamic';
