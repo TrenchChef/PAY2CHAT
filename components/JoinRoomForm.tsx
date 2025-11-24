@@ -3,12 +3,12 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useWallet } from '@solana/wallet-adapter-react';
-import { useWalletModal } from '@solana/wallet-adapter-react-ui';
 import { Room } from '@/lib/store/useRoomStore';
 import { Spinner } from './Spinner';
 import { getUSDCBalance } from '@/lib/solana/wallet';
 import { usePayments } from '@/lib/hooks/usePayments';
 import { calculatePrepaymentAmount } from '@/lib/utils/paymentSplit';
+import { CustomWalletSelector } from './CustomWalletSelector';
 
 // Lazy load joinRoom to prevent build-time evaluation
 const loadJoinRoom = () => import('@/lib/room/joinRoom').then(m => m.joinRoom);
@@ -21,7 +21,6 @@ interface JoinRoomFormProps {
 export function JoinRoomForm({ initialRoomId, initialCode }: JoinRoomFormProps) {
   const router = useRouter();
   const { publicKey, connecting, wallet, connect } = useWallet();
-  const { setVisible } = useWalletModal();
   const [step, setStep] = useState(0); // Start at step 0 (wallet connection)
   const [roomInput, setRoomInput] = useState(initialRoomId || initialCode || '');
   const [room, setRoom] = useState<Room | null>(null);
@@ -33,90 +32,29 @@ export function JoinRoomForm({ initialRoomId, initialCode }: JoinRoomFormProps) 
   const [prepaymentComplete, setPrepaymentComplete] = useState(false);
   const [prepaymentTxid, setPrepaymentTxid] = useState<string | null>(null);
   const [connectionError, setConnectionError] = useState<string | null>(null);
-  const [hasAttemptedConnection, setHasAttemptedConnection] = useState(false);
-  const connectingRef = useRef<string | null>(null);
-  const walletSelectTimeRef = useRef<number>(0);
+  const [showWalletSelector, setShowWalletSelector] = useState(false);
   const { prepayForCall, loading: paymentLoading } = usePayments();
 
-  // Auto-open wallet modal when component mounts if wallet is not connected
+  // Auto-open wallet selector when component mounts if wallet is not connected
   useEffect(() => {
-    if (!publicKey && !connecting && step === 0 && !hasAttemptedConnection) {
+    if (!publicKey && !connecting && step === 0 && !showWalletSelector) {
       const timer = setTimeout(() => {
-        console.log('🔌 [JoinRoom] Auto-opening wallet connection modal...');
+        console.log('🔌 [JoinRoom] Auto-opening wallet selector...');
         setConnectionError(null);
-        setVisible(true);
+        setShowWalletSelector(true);
       }, 300);
       return () => clearTimeout(timer);
     }
-  }, [publicKey, connecting, step, setVisible, hasAttemptedConnection]);
+  }, [publicKey, connecting, step, showWalletSelector]);
 
-  // CRITICAL FIX: When wallet is selected from modal, call connect() immediately
-  // We use a ref to track when wallet was selected and call connect() as fast as possible
-  // The goal is to preserve the user gesture chain for wallet extension popups
-  useEffect(() => {
-    if (!wallet || publicKey || connecting || !connect) return;
-    
-    const walletName = wallet.adapter.name;
-    const now = Date.now();
-    
-    // Prevent duplicate attempts
-    if (connectingRef.current === walletName) {
-      return;
-    }
-    
-    // If wallet was just selected (within last 1000ms), call connect() immediately
-    // This helps preserve the gesture chain as much as possible
-    const timeSinceSelection = now - walletSelectTimeRef.current;
-    if (timeSinceSelection > 1000) {
-      // Wallet was selected more than 1 second ago, might be stale
-      return;
-    }
-    
-    console.log('🔌 [JoinRoom] Wallet selected, calling connect() IMMEDIATELY:', walletName, `(${timeSinceSelection}ms since selection)`);
-    connectingRef.current = walletName;
-    setHasAttemptedConnection(true);
-    setConnectionError(null);
-    
-    // CRITICAL: Call connect() immediately - the promise is async but the call is synchronous
-    // This preserves the user gesture chain as much as possible
-    // The wallet extension popup requires connection to be triggered in the gesture chain
-    connect()
-      .then(() => {
-        console.log('✅ [JoinRoom] Wallet connected successfully');
-        setVisible(false);
-        connectingRef.current = null;
-        walletSelectTimeRef.current = 0;
-      })
-      .catch((error: any) => {
-        console.error('❌ [JoinRoom] Connection failed:', error);
-        let errorMsg = error?.message || 'Failed to connect. Please try again.';
-        if (errorMsg.includes('rejected') || errorMsg.includes('User rejected')) {
-          errorMsg = 'Connection cancelled. Please try again.';
-        }
-        setConnectionError(errorMsg);
-        setHasAttemptedConnection(false);
-        connectingRef.current = null;
-        walletSelectTimeRef.current = 0;
-      });
-  }, [wallet, publicKey, connecting, connect, setVisible]);
-
-  // Track when wallet is selected to help preserve gesture chain
-  useEffect(() => {
-    if (wallet && !publicKey) {
-      walletSelectTimeRef.current = Date.now();
-      console.log('🔌 [JoinRoom] Wallet selected, timestamp recorded:', wallet.adapter.name);
-    }
-  }, [wallet, publicKey]);
-
-  // Close modal when wallet connects
+  // Close wallet selector when wallet connects
   useEffect(() => {
     if (publicKey) {
-      console.log('✅ [JoinRoom] Wallet connected, closing modal');
-      setVisible(false);
+      console.log('✅ [JoinRoom] Wallet connected, closing selector');
+      setShowWalletSelector(false);
       setConnectionError(null);
-      connectingRef.current = null;
     }
-  }, [publicKey, setVisible]);
+  }, [publicKey]);
 
   // Auto-advance to step 1 when wallet connects
   useEffect(() => {
@@ -177,10 +115,7 @@ export function JoinRoomForm({ initialRoomId, initialCode }: JoinRoomFormProps) 
   const handleConnectWallet = () => {
     console.log('🔌 [JoinRoom] User manually clicked Connect Wallet');
     setConnectionError(null);
-    setHasAttemptedConnection(false);
-    connectingRef.current = null;
-    // Just open the modal - let it handle everything
-    setVisible(true);
+    setShowWalletSelector(true);
   };
 
   const handleJoin = async () => {
@@ -337,6 +272,15 @@ export function JoinRoomForm({ initialRoomId, initialCode }: JoinRoomFormProps) 
   return (
     <div className="max-w-2xl mx-auto">
       <h1 className="text-3xl font-bold mb-8">Join Room</h1>
+
+      {showWalletSelector && (
+        <CustomWalletSelector
+          onClose={() => {
+            setShowWalletSelector(false);
+            setConnectionError(null);
+          }}
+        />
+      )}
 
       {step === 0 && (
         <div className="bg-surface rounded-lg p-6 border border-border space-y-6">
