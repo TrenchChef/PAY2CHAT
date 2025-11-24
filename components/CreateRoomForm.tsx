@@ -288,10 +288,18 @@ export function CreateRoomForm() {
               <p>{connectionError}</p>
               <button 
                 onClick={handleConnectWallet}
-                className="text-danger underline hover:no-underline text-sm"
+                className="text-danger underline hover:no-underline text-sm font-medium"
               >
                 Try Again
               </button>
+            </div>
+          )}
+
+          {/* Note about extension errors - they're harmless */}
+          {!publicKey && !connectionError && (
+            <div className="p-3 bg-surface-light border border-border rounded-lg text-text-muted text-xs">
+              <p className="font-medium mb-1">Note:</p>
+              <p>If you see console errors from wallet extensions (evmAsk.js, solanaActionsContentScript.js), these are harmless and won't affect wallet connection.</p>
             </div>
           )}
 
