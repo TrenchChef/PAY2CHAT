@@ -10,7 +10,12 @@ import { WalletModalProvider } from '@solana/wallet-adapter-react-ui';
 import {
   PhantomWalletAdapter,
   SolflareWalletAdapter,
+  TrustWalletAdapter,
 } from '@solana/wallet-adapter-wallets';
+import { BackpackWalletAdapter } from '@solana/wallet-adapter-backpack';
+import { GlowWalletAdapter } from '@solana/wallet-adapter-glow';
+// Coinbase Wallet is auto-detected via Wallet Standard, no explicit adapter needed
+// import { CoinbaseSolanaWalletAdapter } from '@coinbase/cdp-solana-standard-wallet';
 import { clusterApiUrl } from '@solana/web3.js';
 import '@solana/wallet-adapter-react-ui/styles.css';
 
@@ -26,7 +31,10 @@ export function WalletProvider({ children }: WalletProviderProps) {
     () => [
       new PhantomWalletAdapter(),
       new SolflareWalletAdapter(),
-      // BackpackWalletAdapter removed due to import issues - can be added later if needed
+      new BackpackWalletAdapter(),
+      new GlowWalletAdapter(),
+      // Coinbase Wallet is auto-detected via Wallet Standard
+      new TrustWalletAdapter(),
     ],
     []
   );

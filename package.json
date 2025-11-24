@@ -16,9 +16,11 @@
     "test:e2e:report": "playwright show-report"
   },
   "dependencies": {
+    "@coinbase/cdp-solana-standard-wallet": "^0.0.67",
     "@solana/spl-token": "^0.3.9",
     "@solana/wallet-adapter-backpack": "^0.1.4",
     "@solana/wallet-adapter-base": "^0.9.23",
+    "@solana/wallet-adapter-glow": "^0.1.18",
     "@solana/wallet-adapter-phantom": "^0.9.23",
     "@solana/wallet-adapter-react": "^0.15.35",
     "@solana/wallet-adapter-react-ui": "^0.9.35",
@@ -34,6 +36,7 @@
     "react-dom": "^18.2.0",
     "tailwind-merge": "^2.2.0",
     "ws": "^8.16.0",
+    "x402-fetch": "^0.7.3",
     "zustand": "^4.4.7"
   },
   "devDependencies": {

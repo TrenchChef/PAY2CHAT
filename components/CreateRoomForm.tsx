@@ -90,7 +90,7 @@ export function CreateRoomForm() {
       setVisible(false);
       setConnectionError(null);
       connectingRef.current = null;
-    }
+        }
   }, [publicKey, setVisible]);
 
   // COMPREHENSIVE WALLET STATE MONITORING
@@ -144,7 +144,7 @@ export function CreateRoomForm() {
     setHasAttemptedConnection(false);
     connectingRef.current = null;
     // Just open the modal - let it handle everything
-    setVisible(true);
+      setVisible(true);
   };
 
   const formatAddress = (address: string) => {
