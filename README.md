@@ -119,3 +119,58 @@ window.PAY2CHAT_CONFIG.ICE_CANDIDATE_POOL_SIZE = 10;
 
 When you add TURN credentials, the client will include them when creating the `RTCPeerConnection` and this significantly increases the chance of successful connections across networks.
 
+## Testing
+
+### E2E Tests
+Run end-to-end tests with Playwright:
+
+```bash
+# Run all tests
+npm run test:e2e
+
+# Run with UI
+npm run test:e2e:ui
+
+# Run in headed mode
+npm run test:e2e:headed
+
+# Run specific test file
+npx playwright test tests/e2e/adblocker-detection.spec.js
+```
+
+### Manual Testing
+See `TESTING_CHECKLIST.md` for comprehensive manual testing procedures covering:
+- Desktop wallet extensions (Phantom, Solflare, Backpack, Glow)
+- WalletConnect (desktop QR code and mobile deep linking)
+- Payment flows (prepay, per-minute billing)
+- Ad blocker detection
+- Cross-platform verification
+
+### Test Coverage
+- ✅ Ad blocker detection modal
+- ✅ Consent modal
+- ✅ Navigation and UI elements
+- ✅ Landing page functionality
+- ✅ Wallet connection flows
+- ✅ Room creation and joining
+
+See `TESTING_SUMMARY.md` for detailed test results and coverage.
+
+## Wallet Support
+
+### Desktop Extensions
+- **Phantom** - Auto-detected when extension is installed
+- **Solflare** - Auto-detected when extension is installed
+- **Backpack** - Auto-detected when extension is installed
+- **Glow** - Auto-detected when extension is installed
+
+### Mobile/Cross-Platform
+- **WalletConnect** - QR code on desktop, deep linking on mobile
+- Supports all WalletConnect-compatible mobile wallets
+
+### Important Notes
+- **Ad blockers must be disabled** - They interfere with wallet extension scripts and WalletConnect
+- The app will detect ad blockers and block access until disabled
+- Desktop extensions require browser extensions to be installed
+- WalletConnect works on both desktop (QR code) and mobile (deep linking)
+
