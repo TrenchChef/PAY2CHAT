@@ -106,27 +106,13 @@ export function CreateRoomForm() {
     }
   }, [publicKey]);
 
-  const handleConnectWallet = async () => {
+  const handleConnectWallet = () => {
     console.log('🔌 User manually clicked Connect Wallet');
     setConnectionError(null);
     setHasAttemptedConnection(false);
     connectingRef.current = null;
-    
-    // If wallet is already selected but not connected, try to connect
-    if (wallet && !publicKey && connect) {
-      try {
-        console.log('🔌 Attempting to connect to selected wallet:', wallet.adapter.name);
-        await connect();
-      } catch (error: any) {
-        console.error('❌ Connection error:', error);
-        setConnectionError(error?.message || 'Failed to connect. Please try again.');
-        // Open modal as fallback
-        setVisible(true);
-      }
-    } else {
-      // Open modal to select wallet
-      setVisible(true);
-    }
+    // Just open the modal - let it handle everything
+    setVisible(true);
   };
 
   const formatAddress = (address: string) => {
