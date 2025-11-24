@@ -7,6 +7,36 @@ import { Spinner } from './Spinner';
 import { encodeRoomToUrl } from '@/lib/utils/roomSharing';
 import { PublicKey } from '@solana/web3.js';
 
+// Helper function to safely create a PublicKey with validation
+function safeCreatePublicKey(walletAddress: any): PublicKey | null {
+  if (!walletAddress) {
+    console.error('❌ Wallet address is empty or null');
+    return null;
+  }
+
+  const addressStr = typeof walletAddress === 'string' ? walletAddress : walletAddress.toString();
+
+  // Basic validation - Solana addresses are base58 encoded and typically 32-44 characters
+  if (!addressStr || addressStr.length < 32 || addressStr.length > 44) {
+    console.error('❌ Invalid wallet address length:', addressStr?.length);
+    return null;
+  }
+
+  // Check for valid base58 characters (only alphanumeric, no 0, O, I, l)
+  if (!/^[1-9A-HJ-NP-Za-km-z]+$/.test(addressStr)) {
+    console.error('❌ Wallet address contains invalid characters (non-base58):', addressStr);
+    return null;
+  }
+
+  try {
+    const publicKey = new PublicKey(addressStr);
+    return publicKey;
+  } catch (error: any) {
+    console.error('❌ Failed to create PublicKey:', error?.message, 'Address:', addressStr);
+    return null;
+  }
+}
+
 export function HostLobby() {
   const params = useParams();
   const router = useRouter();
@@ -84,16 +114,36 @@ export function HostLobby() {
           if (sessionRoom.id === roomId) {
             console.log('✅ Room found in sessionStorage');
             try {
+              const hostWalletKey = safeCreatePublicKey(sessionRoom.hostWallet);
+              if (!hostWalletKey) {
+                console.error('❌ Invalid wallet address in sessionStorage room:', sessionRoom.hostWallet);
+                throw new Error('Invalid wallet address in stored room data');
+              }
+
               const restoredRoom: Room = {
                 ...sessionRoom,
-                hostWallet: new PublicKey(sessionRoom.hostWallet),
+                hostWallet: hostWalletKey,
               };
+
+              // Validate room structure
+              if (!restoredRoom.id || !restoredRoom.joinCode || !restoredRoom.config) {
+                console.error('❌ Invalid room structure in sessionStorage');
+                throw new Error('Invalid room structure');
+              }
+
               setRoom(restoredRoom, true);
               setError(null);
               setLoading(false);
+              console.log('✅ Room restored from sessionStorage successfully');
               return;
             } catch (pkError: any) {
               console.error('❌ Failed to restore PublicKey from sessionStorage:', pkError);
+              // Clear corrupted sessionStorage room
+              try {
+                sessionStorage.removeItem('current_room');
+              } catch (clearError) {
+                // Ignore
+              }
               // Continue to try localStorage
             }
           } else {
@@ -152,11 +202,20 @@ export function HostLobby() {
         return;
       }
       
+      // Validate wallet address format before attempting to create PublicKey
+      const hostWalletKey = safeCreatePublicKey(roomData.hostWallet);
+      if (!hostWalletKey) {
+        console.error('❌ Invalid wallet address in room data:', roomData.hostWallet);
+        setError(`Failed to restore room data: Invalid wallet address format. Please create a new room.`);
+        setLoading(false);
+        return;
+      }
+
       // Restore room with PublicKey
       try {
         const restoredRoom: Room = {
           ...roomData,
-          hostWallet: new PublicKey(roomData.hostWallet),
+          hostWallet: hostWalletKey,
         };
         
         // Validate restored room
@@ -170,10 +229,10 @@ export function HostLobby() {
         setRoom(restoredRoom, true);
         setError(null);
         setLoading(false);
-        console.log('✅ Room restored successfully');
+        console.log('✅ Room restored successfully from localStorage');
       } catch (pkError: any) {
-        console.error('❌ Failed to restore PublicKey:', pkError);
-        setError(`Failed to restore room data: ${pkError.message || 'Invalid wallet address'}`);
+        console.error('❌ Failed to restore room:', pkError);
+        setError(`Failed to restore room data: ${pkError.message || 'Invalid room data'}. Please create a new room.`);
         setLoading(false);
       }
     } catch (error: any) {
