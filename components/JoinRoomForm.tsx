@@ -35,6 +35,7 @@ export function JoinRoomForm({ initialRoomId, initialCode }: JoinRoomFormProps) 
   const [connectionError, setConnectionError] = useState<string | null>(null);
   const [hasAttemptedConnection, setHasAttemptedConnection] = useState(false);
   const connectingRef = useRef<string | null>(null);
+  const walletSelectTimeRef = useRef<number>(0);
   const { prepayForCall, loading: paymentLoading } = usePayments();
 
   // Auto-open wallet modal when component mounts if wallet is not connected
@@ -49,48 +50,63 @@ export function JoinRoomForm({ initialRoomId, initialCode }: JoinRoomFormProps) 
     }
   }, [publicKey, connecting, step, setVisible, hasAttemptedConnection]);
 
-  // When wallet is selected, ensure connection happens
-  // The modal should trigger connection, but we'll ensure it does
+  // CRITICAL FIX: When wallet is selected from modal, call connect() immediately
+  // We use a ref to track when wallet was selected and call connect() as fast as possible
+  // The goal is to preserve the user gesture chain for wallet extension popups
   useEffect(() => {
     if (!wallet || publicKey || connecting || !connect) return;
     
     const walletName = wallet.adapter.name;
+    const now = Date.now();
     
     // Prevent duplicate attempts
     if (connectingRef.current === walletName) {
       return;
     }
     
-    console.log('🔌 [JoinRoom] Wallet selected, MUST call connect() to open popup:', walletName);
+    // If wallet was just selected (within last 1000ms), call connect() immediately
+    // This helps preserve the gesture chain as much as possible
+    const timeSinceSelection = now - walletSelectTimeRef.current;
+    if (timeSinceSelection > 1000) {
+      // Wallet was selected more than 1 second ago, might be stale
+      return;
+    }
+    
+    console.log('🔌 [JoinRoom] Wallet selected, calling connect() IMMEDIATELY:', walletName, `(${timeSinceSelection}ms since selection)`);
     connectingRef.current = walletName;
     setHasAttemptedConnection(true);
     setConnectionError(null);
     
-    // CRITICAL: We MUST call connect() - the modal doesn't always do it
-    // Call it in the next tick to ensure wallet adapter is ready
-    // But use requestAnimationFrame to maintain gesture chain as much as possible
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        console.log('🔌 [JoinRoom] Calling connect() now - popup MUST open');
-        connect()
-          .then(() => {
-            console.log('✅ [JoinRoom] Wallet connected successfully');
-            setVisible(false);
-            connectingRef.current = null;
-          })
-          .catch((error: any) => {
-            console.error('❌ [JoinRoom] Connection failed:', error);
-            let errorMsg = error?.message || 'Failed to connect. Please try again.';
-            if (errorMsg.includes('rejected')) {
-              errorMsg = 'Connection rejected. Please approve in your wallet.';
-            }
-            setConnectionError(errorMsg);
-            setHasAttemptedConnection(false);
-            connectingRef.current = null;
-          });
+    // CRITICAL: Call connect() immediately - the promise is async but the call is synchronous
+    // This preserves the user gesture chain as much as possible
+    // The wallet extension popup requires connection to be triggered in the gesture chain
+    connect()
+      .then(() => {
+        console.log('✅ [JoinRoom] Wallet connected successfully');
+        setVisible(false);
+        connectingRef.current = null;
+        walletSelectTimeRef.current = 0;
+      })
+      .catch((error: any) => {
+        console.error('❌ [JoinRoom] Connection failed:', error);
+        let errorMsg = error?.message || 'Failed to connect. Please try again.';
+        if (errorMsg.includes('rejected') || errorMsg.includes('User rejected')) {
+          errorMsg = 'Connection cancelled. Please try again.';
+        }
+        setConnectionError(errorMsg);
+        setHasAttemptedConnection(false);
+        connectingRef.current = null;
+        walletSelectTimeRef.current = 0;
       });
-    });
   }, [wallet, publicKey, connecting, connect, setVisible]);
+
+  // Track when wallet is selected to help preserve gesture chain
+  useEffect(() => {
+    if (wallet && !publicKey) {
+      walletSelectTimeRef.current = Date.now();
+      console.log('🔌 [JoinRoom] Wallet selected, timestamp recorded:', wallet.adapter.name);
+    }
+  }, [wallet, publicKey]);
 
   // Close modal when wallet connects
   useEffect(() => {
