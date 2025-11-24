@@ -3,16 +3,17 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useWallet } from '@solana/wallet-adapter-react';
+import { useWalletModal } from '@solana/wallet-adapter-react-ui';
 import { FileUploadList } from './FileUploadList';
 import { Spinner } from './Spinner';
 import { createRoom } from '@/lib/room/createRoom';
 import { useRoomStore, FileMetadata } from '@/lib/store/useRoomStore';
 import { getUSDCBalance } from '@/lib/solana/wallet';
-import { CustomWalletSelector } from './CustomWalletSelector';
 
 export function CreateRoomForm() {
   const router = useRouter();
   const { publicKey, connecting, wallet, connect, select, disconnect, disconnecting, connected } = useWallet();
+  const { setVisible } = useWalletModal();
   const { setRoom } = useRoomStore();
   const [step, setStep] = useState(0); // Start at step 0 (wallet connection)
   const [rate, setRate] = useState(1.0);
@@ -24,28 +25,42 @@ export function CreateRoomForm() {
   const [balance, setBalance] = useState<number | null>(null);
   const [loadingBalance, setLoadingBalance] = useState(false);
   const [connectionError, setConnectionError] = useState<string | null>(null);
-  const [showWalletSelector, setShowWalletSelector] = useState(false);
 
-  // Auto-open wallet selector when component mounts if wallet is not connected
+  // Auto-open wallet modal when component mounts if wallet is not connected
   useEffect(() => {
-    if (!publicKey && !connecting && step === 0 && !showWalletSelector) {
+    if (!publicKey && !connecting && step === 0) {
       const timer = setTimeout(() => {
-        console.log('🔌 Auto-opening wallet selector...');
+        console.log('🔌 Auto-opening wallet modal...');
         setConnectionError(null);
-        setShowWalletSelector(true);
+        setVisible(true);
       }, 300);
       return () => clearTimeout(timer);
     }
-  }, [publicKey, connecting, step, showWalletSelector]);
+  }, [publicKey, connecting, step, setVisible]);
 
-  // Close wallet selector when wallet connects
+  // CRITICAL: When wallet is selected from modal, immediately call connect()
+  // This must happen synchronously to preserve user gesture chain for extension popups
   useEffect(() => {
-    if (publicKey) {
-      console.log('✅ Wallet connected, closing selector');
-      setShowWalletSelector(false);
-      setConnectionError(null);
+    if (wallet && !publicKey && !connecting && connect) {
+      console.log('🔌 Wallet selected from modal, calling connect() IMMEDIATELY:', wallet.adapter.name);
+      // Call connect() immediately - this is synchronous (promise resolves async)
+      // This preserves the user gesture chain required for wallet extension popups
+      connect()
+        .then(() => {
+          console.log('✅ Wallet connected successfully');
+          setVisible(false);
+          setConnectionError(null);
+        })
+        .catch((error: any) => {
+          console.error('❌ Connection failed:', error);
+          let errorMsg = error?.message || 'Failed to connect. Please try again.';
+          if (errorMsg.includes('rejected') || errorMsg.includes('User rejected')) {
+            errorMsg = 'Connection cancelled. Please try again.';
+          }
+          setConnectionError(errorMsg);
+        });
     }
-  }, [publicKey]);
+  }, [wallet, publicKey, connecting, connect, setVisible]);
 
   // COMPREHENSIVE WALLET STATE MONITORING
   useEffect(() => {
@@ -93,7 +108,7 @@ export function CreateRoomForm() {
   const handleConnectWallet = () => {
     console.log('🔌 User manually clicked Connect Wallet');
     setConnectionError(null);
-    setShowWalletSelector(true);
+    setVisible(true);
   };
 
   const formatAddress = (address: string) => {
@@ -182,15 +197,6 @@ export function CreateRoomForm() {
   return (
     <div className="max-w-2xl mx-auto">
       <h1 className="text-3xl font-bold mb-8">Create Room</h1>
-
-      {showWalletSelector && (
-        <CustomWalletSelector
-          onClose={() => {
-            setShowWalletSelector(false);
-            setConnectionError(null);
-          }}
-        />
-      )}
 
       {step === 0 && (
         <div className="bg-surface rounded-lg p-6 border border-border space-y-6">
