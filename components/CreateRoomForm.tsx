@@ -40,31 +40,48 @@ export function CreateRoomForm() {
     }
   }, [publicKey, connecting, step, setVisible, hasAttemptedConnection]);
 
-  // The wallet adapter modal automatically connects when you click a wallet
-  // We just monitor the state - DO NOT interfere with the modal's built-in connection
+  // When wallet is selected from modal, we MUST call connect() to trigger popup
+  // The modal selects the wallet but doesn't always auto-connect
   useEffect(() => {
-    if (wallet && !publicKey) {
-      console.log('🔌 Wallet selected by modal:', wallet.adapter.name);
-      console.log('🔌 Modal should automatically connect - waiting...');
-      setHasAttemptedConnection(true);
-      setConnectionError(null);
+    if (!wallet || publicKey || connecting || !connect) return;
+    
+    const walletName = wallet.adapter.name;
+    
+    // Prevent duplicate attempts
+    if (connectingRef.current === walletName) {
+      return;
     }
-  }, [wallet, publicKey]);
-
-  // Monitor for connection errors
-  useEffect(() => {
-    // If wallet is selected but not connecting and not connected after a delay, show error
-    if (wallet && !publicKey && !connecting && hasAttemptedConnection) {
-      const timer = setTimeout(() => {
-        if (!publicKey && !connecting) {
-          console.warn('⚠️ Wallet selected but connection not happening - modal may need manual trigger');
-          setConnectionError('Connection not started. Please click the wallet again in the modal.');
-          setHasAttemptedConnection(false);
-        }
-      }, 3000);
-      return () => clearTimeout(timer);
-    }
-  }, [wallet, publicKey, connecting, hasAttemptedConnection]);
+    
+    console.log('🔌 Wallet selected, MUST call connect() to open popup:', walletName);
+    connectingRef.current = walletName;
+    setHasAttemptedConnection(true);
+    setConnectionError(null);
+    
+    // CRITICAL: We MUST call connect() - the modal doesn't always do it
+    // Call it in the next tick to ensure wallet adapter is ready
+    // But use requestAnimationFrame to maintain gesture chain as much as possible
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        console.log('🔌 Calling connect() now - popup MUST open');
+        connect()
+          .then(() => {
+            console.log('✅ Wallet connected successfully');
+            setVisible(false);
+            connectingRef.current = null;
+          })
+          .catch((error: any) => {
+            console.error('❌ Connection failed:', error);
+            let errorMsg = error?.message || 'Failed to connect. Please try again.';
+            if (errorMsg.includes('rejected')) {
+              errorMsg = 'Connection rejected. Please approve in your wallet.';
+            }
+            setConnectionError(errorMsg);
+            setHasAttemptedConnection(false);
+            connectingRef.current = null;
+          });
+      });
+    });
+  }, [wallet, publicKey, connecting, connect, setVisible]);
 
   // Close modal when wallet connects
   useEffect(() => {
