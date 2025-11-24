@@ -40,15 +40,37 @@ export function CreateRoomForm() {
     }
   }, [publicKey, connecting, step, setVisible, hasAttemptedConnection]);
 
-  // Monitor wallet selection - the modal should auto-connect
-  // We just track state and close modal when connected
+  // When wallet is selected, ensure connection happens
+  // The modal should trigger connection, but we'll ensure it does
   useEffect(() => {
-    if (wallet && !publicKey) {
-      console.log('🔌 Wallet selected:', wallet.adapter.name);
-      setHasAttemptedConnection(true);
-      setConnectionError(null);
+    if (!wallet || publicKey || connecting || !connect) return;
+    
+    const walletName = wallet.adapter.name;
+    
+    // Prevent duplicate attempts
+    if (connectingRef.current === walletName) {
+      return;
     }
-  }, [wallet, publicKey]);
+    
+    console.log('🔌 Wallet selected, connecting:', walletName);
+    connectingRef.current = walletName;
+    setHasAttemptedConnection(true);
+    setConnectionError(null);
+    
+    // Call connect() immediately - this should trigger wallet extension popup
+    connect()
+      .then(() => {
+        console.log('✅ Wallet connected successfully');
+        setVisible(false);
+        connectingRef.current = null;
+      })
+      .catch((error: any) => {
+        console.error('❌ Wallet connection error:', error);
+        setConnectionError(error?.message || 'Failed to connect. Please try again.');
+        setHasAttemptedConnection(false);
+        connectingRef.current = null;
+      });
+  }, [wallet, publicKey, connecting, connect, setVisible]);
 
   // Close modal when wallet connects
   useEffect(() => {
