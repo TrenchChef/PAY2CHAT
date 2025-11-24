@@ -12,6 +12,36 @@ import { useBilling } from '@/lib/hooks/useBilling';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { PublicKey } from '@solana/web3.js';
 
+// Helper function to safely create a PublicKey with validation
+function safeCreatePublicKey(walletAddress: any): PublicKey | null {
+  if (!walletAddress) {
+    console.error('❌ Wallet address is empty or null');
+    return null;
+  }
+
+  const addressStr = typeof walletAddress === 'string' ? walletAddress : walletAddress.toString();
+
+  // Basic validation - Solana addresses are base58 encoded and typically 32-44 characters
+  if (!addressStr || addressStr.length < 32 || addressStr.length > 44) {
+    console.error('❌ Invalid wallet address length:', addressStr?.length);
+    return null;
+  }
+
+  // Check for valid base58 characters (only alphanumeric, no 0, O, I, l)
+  if (!/^[1-9A-HJ-NP-Za-km-z]+$/.test(addressStr)) {
+    console.error('❌ Wallet address contains invalid characters (non-base58):', addressStr);
+    return null;
+  }
+
+  try {
+    const publicKey = new PublicKey(addressStr);
+    return publicKey;
+  } catch (error: any) {
+    console.error('❌ Failed to create PublicKey:', error?.message, 'Address:', addressStr);
+    return null;
+  }
+}
+
 export function CallUI() {
   const router = useRouter();
   const params = useParams();
@@ -61,11 +91,28 @@ export function CallUI() {
       const roomData = rooms.find((r: any) => r.id === roomId);
       
       if (roomData) {
-        // Restore room with PublicKey
+        // Validate and restore room with PublicKey
+        const hostWalletKey = safeCreatePublicKey(roomData.hostWallet);
+        if (!hostWalletKey) {
+          console.error('❌ Invalid wallet address in room data, redirecting to home');
+          setRoomLoading(false);
+          router.push('/');
+          return;
+        }
+
         const restoredRoom: Room = {
           ...roomData,
-          hostWallet: new PublicKey(roomData.hostWallet),
+          hostWallet: hostWalletKey,
         };
+        
+        // Validate room structure
+        if (!restoredRoom.id || !restoredRoom.joinCode || !restoredRoom.config) {
+          console.error('❌ Invalid room structure, redirecting to home');
+          setRoomLoading(false);
+          router.push('/');
+          return;
+        }
+
         // Determine if user is host based on URL path
         const isHostUser = pathname?.includes('/host') || false;
         setRoom(restoredRoom, isHostUser);
