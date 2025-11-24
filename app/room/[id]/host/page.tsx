@@ -22,15 +22,17 @@ export default function HostLobbyPage() {
   }, []);
 
   // Always show something - never blank
-  // Render immediately with minimal content, then show full UI when mounted
+  // Render immediately with visible content
+  console.log('📄 HostLobbyPage rendering, mounted:', mounted);
+  
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background text-text" style={{ minHeight: '100vh', backgroundColor: '#181c20' }}>
       <ErrorBoundary>
         {!mounted ? (
-          <div className="min-h-screen flex items-center justify-center">
+          <div className="min-h-screen flex items-center justify-center" style={{ minHeight: '100vh' }}>
             <div className="text-center">
               <Spinner size="lg" />
-              <p className="mt-4 text-text-muted">Loading...</p>
+              <p className="mt-4 text-text" style={{ color: '#FFFFFF' }}>Loading...</p>
             </div>
           </div>
         ) : (
