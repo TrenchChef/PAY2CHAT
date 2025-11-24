@@ -20,7 +20,7 @@ interface JoinRoomFormProps {
 
 export function JoinRoomForm({ initialRoomId, initialCode }: JoinRoomFormProps) {
   const router = useRouter();
-  const { publicKey, connecting } = useWallet();
+  const { publicKey, connecting, wallet, connect } = useWallet();
   const { setVisible } = useWalletModal();
   const [step, setStep] = useState(0); // Start at step 0 (wallet connection)
   const [roomInput, setRoomInput] = useState(initialRoomId || initialCode || '');
@@ -32,8 +32,74 @@ export function JoinRoomForm({ initialRoomId, initialCode }: JoinRoomFormProps) 
   const [loadingBalance, setLoadingBalance] = useState(false);
   const [prepaymentComplete, setPrepaymentComplete] = useState(false);
   const [prepaymentTxid, setPrepaymentTxid] = useState<string | null>(null);
+  const [connectionError, setConnectionError] = useState<string | null>(null);
+  const [hasAttemptedConnection, setHasAttemptedConnection] = useState(false);
   const { prepayForCall, loading: paymentLoading } = usePayments();
 
+  // Auto-open wallet modal when component mounts if wallet is not connected
+  useEffect(() => {
+    if (!publicKey && !connecting && step === 0 && !hasAttemptedConnection) {
+      const timer = setTimeout(() => {
+        console.log('🔌 [JoinRoom] Auto-opening wallet connection modal...');
+        setConnectionError(null);
+        setVisible(true);
+      }, 300);
+      return () => clearTimeout(timer);
+    }
+  }, [publicKey, connecting, step, setVisible, hasAttemptedConnection]);
+
+  // Handle wallet connection IMMEDIATELY after selection from modal
+  // CRITICAL: Must maintain user gesture chain for popup to open
+  useEffect(() => {
+    if (wallet && !publicKey && !connecting && connect && !hasAttemptedConnection) {
+      console.log('🔌 [JoinRoom] Wallet selected from modal:', wallet.adapter.name);
+      setHasAttemptedConnection(true);
+      setConnectionError(null);
+      
+      // CRITICAL FIX: Call connect() immediately in the same tick to maintain user gesture
+      // The wallet adapter's connect() method should trigger the extension popup
+      // We use a microtask to ensure it happens in the same event loop but after state updates
+      Promise.resolve().then(async () => {
+        try {
+          console.log('🔌 [JoinRoom] Calling connect() NOW - this MUST trigger wallet extension popup');
+          console.log('🔌 [JoinRoom] Wallet adapter name:', wallet.adapter.name);
+          
+          // Call connect() - this should immediately trigger the wallet extension popup
+          // Do NOT close modal first - let it stay open during connection
+          await connect();
+          console.log('✅ [JoinRoom] Wallet connected successfully');
+          
+          // Close modal after successful connection
+          setVisible(false);
+          setConnectionError(null);
+        } catch (error: any) {
+          console.error('❌ [JoinRoom] Wallet connection error:', error);
+          console.error('❌ [JoinRoom] Error details:', {
+            name: error?.name,
+            message: error?.message,
+            stack: error?.stack
+          });
+          const errorMsg = error?.message || 'Failed to connect wallet. Please try again or select a different wallet.';
+          setConnectionError(errorMsg);
+          setHasAttemptedConnection(false);
+          // Keep modal open on error so user can try again
+        }
+      });
+    }
+  }, [wallet, publicKey, connecting, connect, hasAttemptedConnection, setVisible]);
+
+  // Auto-advance to step 1 when wallet connects
+  useEffect(() => {
+    if (publicKey && step === 0) {
+      console.log('✅ [JoinRoom] Wallet connected, advancing to room input');
+      setStep(1);
+    } else if (!publicKey && step !== 0) {
+      // Reset to step 0 if wallet disconnects
+      setStep(0);
+    }
+  }, [publicKey, step]);
+
+  // Load USDC balance when wallet connects
   useEffect(() => {
     if (publicKey) {
       setLoadingBalance(true);
@@ -42,28 +108,62 @@ export function JoinRoomForm({ initialRoomId, initialCode }: JoinRoomFormProps) 
           setBalance(bal);
           setLoadingBalance(false);
         })
-        .catch(() => {
+        .catch((error) => {
+          console.error('[JoinRoom] Failed to load balance:', error);
           setBalance(0);
           setLoadingBalance(false);
         });
-      // Auto-advance to step 1 if wallet is connected and we're on step 0
-      setStep((currentStep) => (currentStep === 0 ? 1 : currentStep));
     } else {
-      // Reset to step 0 if wallet disconnects
-      setStep(0);
+      setBalance(null);
     }
   }, [publicKey]);
 
+  // Handle auto-join when initialRoomId or initialCode is provided
   useEffect(() => {
-    if (initialRoomId || initialCode) {
-      if (publicKey && step === 1) {
-        handleJoin();
-      }
-    }
-  }, [initialRoomId, initialCode, publicKey, step]);
+    if ((initialRoomId || initialCode) && publicKey && step === 1 && !room) {
+      const autoJoin = async () => {
+        const roomInputValue = initialRoomId || initialCode || '';
+        if (!roomInputValue.trim()) return;
 
-  const handleConnectWallet = () => {
-    setVisible(true);
+        setLoading(true);
+        setError('');
+
+        try {
+          const joinRoom = await loadJoinRoom();
+          const joinedRoom = await joinRoom(roomInputValue, publicKey);
+          setRoom(joinedRoom);
+          setRoomInput(roomInputValue);
+        } catch (err: any) {
+          setError(err.message || 'Failed to join room');
+        } finally {
+          setLoading(false);
+        }
+      };
+      
+      autoJoin();
+    }
+  }, [initialRoomId, initialCode, publicKey, step, room]);
+
+  const handleConnectWallet = async () => {
+    console.log('🔌 [JoinRoom] User manually clicked Connect Wallet');
+    setConnectionError(null);
+    setHasAttemptedConnection(false);
+    
+    // If a wallet is already selected, try to connect directly
+    if (wallet && !publicKey && connect) {
+      try {
+        console.log('🔌 [JoinRoom] Connecting to selected wallet:', wallet.adapter.name);
+        await connect();
+      } catch (error: any) {
+        console.error('❌ [JoinRoom] Connection error:', error);
+        setConnectionError(error?.message || 'Failed to connect wallet. Please try selecting a wallet again.');
+        // Open modal as fallback
+        setVisible(true);
+      }
+    } else {
+      // Open modal to select wallet
+      setVisible(true);
+    }
   };
 
   const handleJoin = async () => {
@@ -225,8 +325,25 @@ export function JoinRoomForm({ initialRoomId, initialCode }: JoinRoomFormProps) 
         <div className="bg-surface rounded-lg p-6 border border-border space-y-6">
           <h2 className="text-xl font-bold">Connect Wallet</h2>
           <p className="text-text-muted">
-            Connect your Solana wallet to join a room and start chatting.
+            {connecting 
+              ? 'Please confirm the wallet connection in your wallet extension.'
+              : publicKey 
+                ? 'Wallet connected! Click Continue to proceed.'
+                : 'Connect your Solana wallet to join a room and start chatting. The wallet selection dialog should open automatically.'}
           </p>
+          
+          {connectionError && (
+            <div className="p-3 bg-danger/10 border border-danger/20 rounded-lg text-danger text-sm space-y-2">
+              <p>{connectionError}</p>
+              <button 
+                onClick={handleConnectWallet}
+                className="text-danger underline hover:no-underline text-sm"
+              >
+                Try Again
+              </button>
+            </div>
+          )}
+
           {publicKey ? (
             <div className="space-y-4">
               <div className="bg-background rounded p-4 border border-border">
