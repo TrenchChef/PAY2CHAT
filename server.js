@@ -2,8 +2,11 @@
 // Usage: set env `METERED_API_KEY` in `.env` or environment then `node server.js`
 // Protocol: JSON messages { type: 'join'|'offer'|'answer'|'candidate', room, ... }
 
-// Optionally read .env when `dotenv` is installed locally (not required)
-try { require('dotenv').config(); } catch (e) { /* dotenv not installed; ok */ }
+// Optionally read .env and .env.local when `dotenv` is installed locally (not required)
+try {
+  require('dotenv').config(); // Load .env
+  require('dotenv').config({ path: '.env.local' }); // Also load .env.local (for Next.js compatibility)
+} catch (e) { /* dotenv not installed; ok */ }
 
 const WebSocket = require('ws');
 const PORT = process.env.PORT || 8888;

@@ -11,6 +11,7 @@ npm-debug.log
 /.next/
 /out/
 /.env*.local
+/.env
 /.vercel
 
 # TypeScript

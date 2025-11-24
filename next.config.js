@@ -12,6 +12,11 @@ const nextConfig = {
       net: false,
       tls: false,
     };
+    // Suppress pino-pretty warning (optional dependency)
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      'pino-pretty': false,
+    };
     return config;
   },
 };

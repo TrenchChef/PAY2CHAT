@@ -7,8 +7,9 @@ Metered.ca is a service that provides **TURN servers** for WebRTC applications. 
 ## Current Setup
 
 Your application currently uses:
-- **STUN server**: `stun:stun.l.google.com:19302` (free Google STUN server)
-- **TURN servers**: None configured
+- **STUN server**: `stun:stun.l.google.com:19302` (free Google STUN server) - Always available as fallback
+- **TURN servers**: Dynamically fetched from Metered.ca API when `METERED_API_KEY` is configured
+- **Fallback behavior**: If TURN credentials are unavailable, the app gracefully falls back to STUN-only
 
 ## When Do You Need TURN Servers?
 
@@ -64,53 +65,61 @@ Your application currently uses:
 3. **Same network** - Most users on same network
 4. **Connection works** - Most connections succeed without TURN
 
-## How to Add TURN Servers (When Needed)
+## How TURN Servers Work (Now Implemented)
 
-If you decide to add TURN servers later:
+TURN servers are now **automatically enabled** when you configure `METERED_API_KEY`:
 
-1. **Sign up for Metered.ca** (or similar service)
-2. **Get API key** from Metered.ca dashboard
-3. **Add to Railway environment variables**: `METERED_API_KEY=your_key`
-4. **Update WebRTC client** to use TURN servers:
+1. **Sign up for Metered.ca** and get your API key from the dashboard
+2. **Add to environment variables**: 
+   - Local development: Add `METERED_API_KEY=your_key` to `.env.local`
+   - Production: Add `METERED_API_KEY=your_key` to your deployment platform's environment variables
+3. **That's it!** The app will automatically:
+   - Fetch TURN credentials dynamically from Metered.ca API
+   - Use TURN servers for improved connectivity
+   - Fall back to STUN-only if TURN is unavailable
 
-```typescript
-// In lib/webrtc/client.ts
-const iceServers = [
-  { urls: 'stun:stun.l.google.com:19302' },
-  {
-    urls: 'turn:global.relay.metered.ca:80',
-    username: 'your_username',
-    credential: 'your_credential',
-  },
-  {
-    urls: 'turn:global.relay.metered.ca:443',
-    username: 'your_username',
-    credential: 'your_credential',
-  },
-];
-```
+### Implementation Details
+
+- **API Route**: `/api/turn-credentials` - Server-side endpoint that securely fetches credentials
+- **Dynamic Fetching**: Credentials are fetched per-session (not hardcoded)
+- **Automatic Fallback**: If TURN is unavailable, connection works with STUN only
+- **Security**: `METERED_API_KEY` is never exposed to the client (server-side only)
+
+### TURN Server URLs Used
+
+When credentials are available, the app uses:
+- `turn:global.relay.metered.ca:80` (UDP)
+- `turn:global.relay.metered.ca:443` (TCP/TLS)
+- `turn:global.relay.metered.ca:443?transport=tcp` (explicit TCP)
 
 ## Current Status
 
-**METERED_API_KEY is NOT needed right now** because:
-- ✅ No TURN servers are configured
-- ✅ The code doesn't use it
-- ✅ Free STUN server works for basic connections
-- ✅ You can add it later if connection issues arise
+**TURN servers are now implemented with dynamic credentials!**
+
+- ✅ TURN server support is built-in and ready to use
+- ✅ Credentials are fetched dynamically (no hardcoding)
+- ✅ Automatic fallback to STUN if TURN unavailable
+- ✅ `METERED_API_KEY` is optional - app works without it (STUN-only)
 
 ## Recommendation
 
-**Start without TURN servers** and add them if you experience:
+**Start without TURN servers** (no `METERED_API_KEY` needed) and add them if you experience:
 - Connection failures
 - Mobile user issues
 - Production reliability needs
 
+When you're ready to enable TURN:
+1. Sign up for Metered.ca
+2. Get your API key
+3. Add `METERED_API_KEY=your_key` to environment variables
+4. The app will automatically use TURN servers
+
 This approach:
-- Saves costs initially
+- Saves costs initially (no TURN usage until needed)
 - Lets you test with real users first
-- Easy to add later when needed
+- Easy to enable when needed (just add the API key)
 
 ---
 
-**Bottom line**: METERED_API_KEY is for future use if you need TURN servers. Not needed now, but useful if connection reliability becomes an issue.
+**Bottom line**: TURN servers are now implemented and ready. Add `METERED_API_KEY` when you need improved connectivity. The app works perfectly without it using STUN-only.
 

@@ -1,4 +1,5 @@
 import { useCallStore } from '@/lib/store/useCallStore';
+import { getIceServers } from './turnCredentials';
 
 interface WebRTCClientConfig {
   signalingUrl?: string;
@@ -70,12 +71,10 @@ export class WebRTCClient {
       });
     }
 
-    // Create peer connection
-    const iceServers = [
-      { urls: 'stun:stun.l.google.com:19302' },
-      // Add TURN servers from config if available
-    ];
+    // Fetch ICE servers dynamically (includes TURN if available, falls back to STUN)
+    const iceServers = await getIceServers();
 
+    // Create peer connection with dynamic ICE servers
     this.pc = new RTCPeerConnection({ iceServers });
 
     // Add local tracks
