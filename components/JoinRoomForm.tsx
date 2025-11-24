@@ -50,6 +50,7 @@ export function JoinRoomForm({ initialRoomId, initialCode }: JoinRoomFormProps) 
   }, [publicKey, connecting, step, setVisible, hasAttemptedConnection]);
 
   // CRITICAL: When wallet is selected from modal, immediately call connect()
+  // Use queueMicrotask to call connect() as soon as possible while preserving user gesture chain
   // This must happen synchronously to preserve user gesture chain for extension popups
   // For WalletConnect on mobile, this also ensures deep linking works properly
   useEffect(() => {
@@ -77,9 +78,11 @@ export function JoinRoomForm({ initialRoomId, initialCode }: JoinRoomFormProps) 
       connectionAttemptRef.current = walletName;
       setHasAttemptedConnection(true);
 
-      // Call connect() immediately - this is synchronous (promise resolves async)
-      // This preserves the user gesture chain required for wallet extension popups
-      // For WalletConnect on mobile, this triggers the deep link to the wallet app
+      // CRITICAL: Call connect() immediately - the wallet adapter modal should have already
+      // called select() when the user clicked, so wallet is set. We immediately call connect()
+      // to preserve the user gesture chain required for wallet extension popups.
+      // For WalletConnect on mobile, this triggers the deep link to the wallet app.
+      // We call connect() directly without delay to preserve the gesture chain.
       connect()
         .then(() => {
           console.log('✅ [JoinRoom] Wallet connected successfully');

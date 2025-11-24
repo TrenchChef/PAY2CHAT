@@ -49,7 +49,15 @@ export function WalletProvider({ children }: WalletProviderProps) {
   const endpoint = useMemo(() => clusterApiUrl(network), [network]);
   const [mounted, setMounted] = useState(false);
   const [WalletConnectAdapter, setWalletConnectAdapter] = useState<any>(null);
+  const [walletConnectLoaded, setWalletConnectLoaded] = useState(false);
   const [detectedExtensions, setDetectedExtensions] = useState<Record<string, boolean>>({});
+
+  // Set mounted state immediately on client side (for desktop wallets)
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setMounted(true);
+    }
+  }, []);
 
   // Check for wallet extensions on mount and periodically
   useEffect(() => {
@@ -99,10 +107,17 @@ export function WalletProvider({ children }: WalletProviderProps) {
   // Dynamically import WalletConnect only on client side to avoid SSR issues
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      import('@solana/wallet-adapter-walletconnect').then((module) => {
-        setWalletConnectAdapter(() => module.WalletConnectWalletAdapter);
-        setMounted(true);
-      });
+      import('@solana/wallet-adapter-walletconnect')
+        .then((module) => {
+          setWalletConnectAdapter(() => module.WalletConnectWalletAdapter);
+          setWalletConnectLoaded(true);
+          console.log('✅ WalletConnect adapter loaded');
+        })
+        .catch((error) => {
+          console.error('❌ Failed to load WalletConnect adapter:', error);
+          // Don't block the app if WalletConnect fails to load
+          setWalletConnectLoaded(false);
+        });
     }
   }, []);
 
@@ -169,9 +184,12 @@ export function WalletProvider({ children }: WalletProviderProps) {
         console.error('❌ Failed to initialize Glow adapter:', error);
       }
 
+      // Track whether WalletConnect was actually added (not just if module loaded)
+      let walletConnectAdded = false;
+      
       // Add WalletConnect adapter (for mobile/QR code support)
-      // Only add if it's loaded and mounted
-      if (mounted && WalletConnectAdapter) {
+      // Only add if it's loaded successfully
+      if (walletConnectLoaded && WalletConnectAdapter) {
         try {
           // Detect if we're on mobile
           const isMobile = typeof window !== 'undefined' && 
@@ -195,16 +213,34 @@ export function WalletProvider({ children }: WalletProviderProps) {
             },
           });
           walletAdapters.push(walletConnect);
+          walletConnectAdded = true; // Mark as successfully added
           console.log('✅ WalletConnect adapter added', { isMobile });
         } catch (error) {
           console.error('❌ Failed to initialize WalletConnect adapter:', error);
+          // Continue without WalletConnect - desktop wallets should still work
+          walletConnectAdded = false; // Not added due to error
         }
+      } else if (mounted && !walletConnectLoaded) {
+        console.log('⏳ WalletConnect adapter still loading...');
       }
 
-      console.log(`🎯 Total wallets initialized: ${walletAdapters.length}`);
+      // Calculate desktop wallets count: total minus WalletConnect (only if actually added)
+      const desktopWalletsCount = walletAdapters.length - (walletConnectAdded ? 1 : 0);
+      
+      console.log(`🎯 Total wallets initialized: ${walletAdapters.length}`, {
+        desktopWallets: desktopWalletsCount,
+        walletConnect: walletConnectAdded,
+        walletConnectModuleLoaded: walletConnectLoaded,
+      });
+      
+      // Ensure we always return at least some wallets (even if WalletConnect isn't ready)
+      if (walletAdapters.length === 0 && mounted) {
+        console.warn('⚠️ No wallets initialized! This should not happen.');
+      }
+      
       return walletAdapters;
     },
-    [network, mounted, WalletConnectAdapter]
+    [network, mounted, walletConnectLoaded, WalletConnectAdapter]
     // Note: detectedExtensions is NOT in dependencies because we call detectWalletExtensions()
     // independently inside the memoized function. Including it would cause unnecessary
     // recreation every 3 seconds when the state updates, even though we don't use the state value.
