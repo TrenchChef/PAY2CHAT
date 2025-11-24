@@ -3,6 +3,7 @@
 import { ReactNode, useState, useEffect } from 'react';
 import { WalletProvider } from './WalletProvider';
 import { ConsentProvider } from './ConsentProvider';
+import { AdBlockerProvider } from './AdBlockerProvider';
 import { ConsentModalWrapper } from '../ConsentModalWrapper';
 
 export function ClientProviders({ children }: { children: ReactNode }) {
@@ -21,12 +22,14 @@ export function ClientProviders({ children }: { children: ReactNode }) {
   }
 
   return (
-    <ConsentProvider>
-      <WalletProvider>
-        <ConsentModalWrapper />
-        {children}
-      </WalletProvider>
-    </ConsentProvider>
+    <AdBlockerProvider>
+      <ConsentProvider>
+        <WalletProvider>
+          <ConsentModalWrapper />
+          {children}
+        </WalletProvider>
+      </ConsentProvider>
+    </AdBlockerProvider>
   );
 }
 
