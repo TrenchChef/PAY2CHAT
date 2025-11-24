@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useLayoutEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { useWalletModal } from '@solana/wallet-adapter-react-ui';
@@ -33,13 +33,12 @@ export function JoinRoomForm({ initialRoomId, initialCode }: JoinRoomFormProps) 
   const [prepaymentComplete, setPrepaymentComplete] = useState(false);
   const [prepaymentTxid, setPrepaymentTxid] = useState<string | null>(null);
   const [connectionError, setConnectionError] = useState<string | null>(null);
-  const [hasAttemptedConnection, setHasAttemptedConnection] = useState(false);
-  const connectionAttemptRef = useRef<string | null>(null);
   const { prepayForCall, loading: paymentLoading } = usePayments();
 
   // Auto-open wallet modal when component mounts if wallet is not connected
+  // WalletConnectionHandler will handle the actual connection when wallet is selected
   useEffect(() => {
-    if (!publicKey && !connecting && step === 0 && !hasAttemptedConnection) {
+    if (!publicKey && !connecting && step === 0) {
       const timer = setTimeout(() => {
         console.log('🔌 [JoinRoom] Auto-opening wallet modal...');
         setConnectionError(null);
@@ -47,81 +46,14 @@ export function JoinRoomForm({ initialRoomId, initialCode }: JoinRoomFormProps) 
       }, 300);
       return () => clearTimeout(timer);
     }
-  }, [publicKey, connecting, step, setVisible, hasAttemptedConnection]);
+  }, [publicKey, connecting, step, setVisible]);
 
-  // CRITICAL: When wallet is selected from modal, immediately call connect()
-  // Use useLayoutEffect instead of useEffect to run synchronously before browser paint
-  // This preserves the user gesture chain required for wallet extension popups
-  // For WalletConnect on mobile, this also ensures deep linking works properly
-  useLayoutEffect(() => {
-    if (wallet && !publicKey && !connecting && connect && step === 0) {
-      const walletName = wallet.adapter.name;
-      
-      // Prevent infinite retry loop: only attempt connection once per wallet selection
-      // If connection fails, user must manually retry (prevents spam)
-      if (connectionAttemptRef.current === walletName) {
-        return; // Already attempted connection for this wallet
-      }
-
-      const isWalletConnect = walletName === 'WalletConnect';
-      const isMobile = typeof window !== 'undefined' && 
-        (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
-         (window.innerWidth <= 768));
-
-      console.log('🔌 [JoinRoom] Wallet selected from modal, calling connect() IMMEDIATELY:', {
-        wallet: walletName,
-        isWalletConnect,
-        isMobile,
-      });
-
-      // Mark that we're attempting connection for this wallet
-      connectionAttemptRef.current = walletName;
-      setHasAttemptedConnection(true);
-
-      // CRITICAL: Call connect() immediately - the wallet adapter modal should have already
-      // called select() when the user clicked, so wallet is set. We immediately call connect()
-      // to preserve the user gesture chain required for wallet extension popups.
-      // For WalletConnect on mobile, this triggers the deep link to the wallet app.
-      // We call connect() directly without delay to preserve the gesture chain.
-      connect()
-        .then(() => {
-          console.log('✅ [JoinRoom] Wallet connected successfully');
-          setVisible(false);
-          setConnectionError(null);
-          connectionAttemptRef.current = null; // Reset on success
-          setHasAttemptedConnection(false);
-        })
-        .catch((error: any) => {
-          console.error('❌ [JoinRoom] Connection failed:', error);
-          let errorMsg = error?.message || 'Failed to connect. Please try again.';
-          if (errorMsg.includes('rejected') || errorMsg.includes('User rejected')) {
-            errorMsg = 'Connection cancelled. Please try again.';
-            // Reset on user rejection so they can try again
-            connectionAttemptRef.current = null;
-            setHasAttemptedConnection(false);
-          }
-          // For WalletConnect on mobile, provide helpful error message
-          if (isWalletConnect && isMobile) {
-            errorMsg = 'Please approve the connection in your wallet app. If the app didn\'t open, try again.';
-          }
-          setConnectionError(errorMsg);
-          // Don't reset connectionAttemptRef on error - user must manually retry
-          // This prevents infinite retry loop
-        });
-    }
-  }, [wallet, publicKey, connecting, connect, setVisible, step]);
-
-  // Reset connection attempt tracking when wallet changes or disconnects
+  // Clear connection error when wallet connects successfully
   useEffect(() => {
-    if (!wallet || publicKey) {
-      connectionAttemptRef.current = null;
-      if (publicKey) {
-        setHasAttemptedConnection(false);
-      }
+    if (publicKey) {
+      setConnectionError(null);
     }
-  }, [wallet, publicKey]);
-
-  // Close wallet modal when wallet connects (handled by setVisible(false) in connect effect above)
+  }, [publicKey]);
 
   // Auto-advance to step 1 when wallet connects
   useEffect(() => {
