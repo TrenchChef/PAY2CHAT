@@ -1,10 +1,17 @@
 'use client';
 
+/**
+ * Stage 3: Connect Wallet Button
+ * 
+ * Shows wallet connection status, USDC balance, and network validation.
+ * NO payments yet, NO billing
+ */
+
 import { useWallet } from '@solana/wallet-adapter-react';
 import { useWalletModal } from '@solana/wallet-adapter-react-ui';
 import { useWalletStore } from '@/lib/store/useWalletStore';
 import { useEffect, useState } from 'react';
-import { getUSDCBalance } from '@/lib/solana/wallet';
+import { getUSDCBalance, validateNetwork } from '@/lib/solana/wallet';
 
 export function ConnectWalletButton() {
   const { publicKey, wallet, disconnect, connecting } = useWallet();
@@ -12,10 +19,25 @@ export function ConnectWalletButton() {
   const { setWallet, disconnect: disconnectStore } = useWalletStore();
   const [balance, setBalance] = useState<number | null>(null);
   const [loadingBalance, setLoadingBalance] = useState(false);
+  const [networkError, setNetworkError] = useState<string | null>(null);
+  const [isValidNetwork, setIsValidNetwork] = useState<boolean>(true);
 
   useEffect(() => {
     if (publicKey && wallet) {
       setWallet(publicKey, wallet.adapter.name);
+      
+      // Validate network
+      validateNetwork(publicKey)
+        .then((validation) => {
+          setIsValidNetwork(validation.isValid);
+          setNetworkError(validation.error || null);
+        })
+        .catch((error) => {
+          console.error('Network validation error:', error);
+          setIsValidNetwork(false);
+          setNetworkError('Failed to validate network');
+        });
+      
       // Load balance
       setLoadingBalance(true);
       getUSDCBalance(publicKey)
@@ -23,13 +45,16 @@ export function ConnectWalletButton() {
           setBalance(bal);
           setLoadingBalance(false);
         })
-        .catch(() => {
+        .catch((error) => {
+          console.error('Failed to load balance:', error);
           setBalance(0);
           setLoadingBalance(false);
         });
     } else {
       disconnectStore();
       setBalance(null);
+      setNetworkError(null);
+      setIsValidNetwork(true);
     }
   }, [publicKey, wallet, setWallet, disconnectStore]);
 
@@ -73,6 +98,16 @@ export function ConnectWalletButton() {
           <div className="text-xs text-text-muted">
             {loadingBalance ? 'Loading...' : balance !== null ? `${balance.toFixed(2)} USDC` : '—'}
           </div>
+          {networkError && (
+            <div className="text-xs text-danger mt-1">
+              {networkError}
+            </div>
+          )}
+          {!isValidNetwork && !networkError && (
+            <div className="text-xs text-danger mt-1">
+              Wrong network. Please switch to mainnet.
+            </div>
+          )}
         </div>
         <button
           onClick={handleDisconnect}
