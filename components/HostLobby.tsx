@@ -294,6 +294,7 @@ export function HostLobby() {
       error,
       hasCurrentRoom: !!currentRoom,
       currentRoomId: currentRoom?.id,
+      pathname: typeof window !== 'undefined' ? window.location.pathname : 'N/A',
     });
   }, [mounted, roomId, loading, error, currentRoom]);
 
