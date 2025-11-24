@@ -497,7 +497,8 @@ export function HostLobby() {
           borderRadius: '8px',
           padding: '24px',
           border: '1px solid #3A3F46',
-          ...baseStyles
+          color: baseStyles.color,
+          fontFamily: baseStyles.fontFamily
         }}
       >
         <div>
