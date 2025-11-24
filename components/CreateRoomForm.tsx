@@ -1,4 +1,4 @@
-1'use client';
+'use client';
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
@@ -40,49 +40,25 @@ export function CreateRoomForm() {
     }
   }, [publicKey, connecting, step, setVisible, hasAttemptedConnection]);
 
-  // When wallet is selected from modal, ensure connection happens
-  // The wallet adapter modal should auto-connect, but we'll ensure it does
+  // Monitor wallet selection - the modal should auto-connect
+  // We just track state and close modal when connected
   useEffect(() => {
-    if (!wallet || publicKey || connecting || !connect) return;
-    
-    const walletName = wallet.adapter.name;
-    
-    // Prevent duplicate connection attempts
-    if (connectingRef.current === walletName) {
-      return;
+    if (wallet && !publicKey) {
+      console.log('🔌 Wallet selected:', wallet.adapter.name);
+      setHasAttemptedConnection(true);
+      setConnectionError(null);
     }
-    
-    console.log('🔌 Wallet selected from modal, ensuring connection:', walletName);
-    connectingRef.current = walletName;
-    setHasAttemptedConnection(true);
-    setConnectionError(null);
-    
-    // The wallet adapter modal should have already triggered connection
-    // But if it hasn't, we'll trigger it here
-    // Use a small delay to let the modal's connection attempt complete first
-    const timer = setTimeout(async () => {
-      // Check if still not connected
-      if (!publicKey && !connecting && connect) {
-        console.log('🔌 Modal did not auto-connect, calling connect() manually');
-        try {
-          await connect();
-          console.log('✅ Manual connection successful');
-          setVisible(false);
-        } catch (error: any) {
-          console.error('❌ Manual connection failed:', error);
-          setConnectionError(error?.message || 'Failed to connect. Please try again.');
-          setHasAttemptedConnection(false);
-          connectingRef.current = null;
-        }
-      } else if (publicKey) {
-        console.log('✅ Wallet connected (modal handled it)');
-        setVisible(false);
-        connectingRef.current = null;
-      }
-    }, 100);
-    
-    return () => clearTimeout(timer);
-  }, [wallet, publicKey, connecting, connect, setVisible]);
+  }, [wallet, publicKey]);
+
+  // Close modal when wallet connects
+  useEffect(() => {
+    if (publicKey) {
+      console.log('✅ Wallet connected, closing modal');
+      setVisible(false);
+      setConnectionError(null);
+      connectingRef.current = null;
+    }
+  }, [publicKey, setVisible]);
 
   // Auto-advance to step 1 when wallet connects
   useEffect(() => {
@@ -117,10 +93,24 @@ export function CreateRoomForm() {
   const handleConnectWallet = async () => {
     console.log('🔌 User manually clicked Connect Wallet');
     setConnectionError(null);
-    setHasAttemptedConnection(true);
+    setHasAttemptedConnection(false);
+    connectingRef.current = null;
     
-    // Open modal - the modal will handle wallet selection and connection automatically
-    setVisible(true);
+    // If wallet is already selected but not connected, try to connect
+    if (wallet && !publicKey && connect) {
+      try {
+        console.log('🔌 Attempting to connect to selected wallet:', wallet.adapter.name);
+        await connect();
+      } catch (error: any) {
+        console.error('❌ Connection error:', error);
+        setConnectionError(error?.message || 'Failed to connect. Please try again.');
+        // Open modal as fallback
+        setVisible(true);
+      }
+    } else {
+      // Open modal to select wallet
+      setVisible(true);
+    }
   };
 
   const formatAddress = (address: string) => {
