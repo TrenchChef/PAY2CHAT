@@ -61,24 +61,41 @@ export function JoinRoomForm({ initialRoomId, initialCode }: JoinRoomFormProps) 
       return;
     }
     
-    console.log('🔌 [JoinRoom] Wallet selected, connecting:', walletName);
+    console.log('🔌 [JoinRoom] Wallet selected:', walletName);
     connectingRef.current = walletName;
     setHasAttemptedConnection(true);
     setConnectionError(null);
     
-    // Call connect() immediately - this should trigger wallet extension popup
-    connect()
-      .then(() => {
-        console.log('✅ [JoinRoom] Wallet connected successfully');
-        setVisible(false);
-        connectingRef.current = null;
-      })
-      .catch((error: any) => {
-        console.error('❌ [JoinRoom] Wallet connection error:', error);
-        setConnectionError(error?.message || 'Failed to connect. Please try again.');
-        setHasAttemptedConnection(false);
-        connectingRef.current = null;
-      });
+    // Use queueMicrotask to call connect() in the same event loop
+    // This preserves the user gesture chain better than direct call
+    queueMicrotask(() => {
+      console.log('🔌 [JoinRoom] Calling connect() - wallet extension popup should open now');
+      connect()
+        .then(() => {
+          console.log('✅ [JoinRoom] Wallet connected successfully');
+          setVisible(false);
+          connectingRef.current = null;
+        })
+        .catch((error: any) => {
+          console.error('❌ [JoinRoom] Wallet connection error:', error);
+          
+          // Provide user-friendly error message
+          let errorMsg = 'Failed to connect wallet. ';
+          if (error?.message?.includes('User rejected') || error?.message?.includes('rejected')) {
+            errorMsg = 'Connection rejected. Please try again and approve the connection.';
+          } else if (error?.message?.includes('timeout')) {
+            errorMsg = 'Connection timeout. Please try again.';
+          } else if (error?.message) {
+            errorMsg = error.message;
+          } else {
+            errorMsg += 'Please make sure your wallet extension is unlocked and try again.';
+          }
+          
+          setConnectionError(errorMsg);
+          setHasAttemptedConnection(false);
+          connectingRef.current = null;
+        });
+    });
   }, [wallet, publicKey, connecting, connect, setVisible]);
 
   // Close modal when wallet connects
