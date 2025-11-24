@@ -242,20 +242,6 @@ export function HostLobby() {
     }
   }, [roomId, currentRoom?.id, setRoom, mounted]);
 
-  // Debug: Log current state periodically
-  useEffect(() => {
-    if (mounted && roomId) {
-      console.log('📊 HostLobby state:', {
-        mounted,
-        roomId,
-        loading,
-        error,
-        hasCurrentRoom: !!currentRoom,
-        currentRoomId: currentRoom?.id,
-      });
-    }
-  }, [mounted, roomId, loading, error, currentRoom]);
-
   // Generate shareable URL when room is available
   useEffect(() => {
     if (loading || !currentRoom || typeof window === 'undefined') {
